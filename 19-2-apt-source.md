@@ -1,6 +1,7 @@
 # 解決/etc/apt/sources.list.d/kubernetes.list的問題
 
 **補充**
+
 如果你修改前的/etc/apt/sources.list.d/kubernetes.list是長這樣:
 
 ```bash
