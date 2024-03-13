@@ -1,25 +1,41 @@
-# Affinity
-## Node Affinity
-### RequiredDuringSchedulingIgnoredDuringExecution
-### PreferredDuringSchedulingIgnoredDuringExecution
-### 欄位設定
-#### key
-#### value
-#### operator (In, NotIn, Exists, DoesNotExist)
+# **TLS in cluster**
+## **Client**
+### ***管理員***
+#### admin.crt
+#### admin.key
+### ***kube-scheduler***
+#### scheduler.crt
+#### scheduler.key
+### ***kube-controller-manager***
+#### controller-manager.crt
+#### controller-manager.key
+### ***kubelet***
+#### kubelet.crt
+#### kubelet.key
+### ***kube-proxy***
+#### proxy.crt
+#### proxy.key
+### ***kube-apiserver***
+#### **to etcd**
+##### apiserver-etcd-client.crt
+##### apiserver-etcd-client.key
+#### **to kubelet**
+##### apiserver-kubelet-client.crt
+##### apiserver-kubelet-client.key
 
-# Taint & Toleration
-## Taint(對象: Node)
-### Taint effect
-#### NoSchedule
-#### PreferNoSchedule
-#### NoExecute
-## Toleration(對象: Pod)
-### 欄位設定
-#### key
-#### value
-#### operator (Exists, Equal)
-#### effect (NoSchedule, PreferNoSchedule, NoExecute)
-#### tolerationSeconds(只有在NoExecute時需要)
+## **Server**
+### ***kube-apiserver***
+#### apiserver.crt
+#### apiserver.key
+### ***etcd***
+#### etcd.crt
+#### etcd.key
+### ***kubelet***
+#### kubelet.crt
+#### kubelet.key
 
+## **CA**
+### ca.crt
+### ca.key
 
 
