@@ -1,41 +1,25 @@
-# **TLS in cluster**
-## **Client**
-### ***管理員***
-#### admin.crt
-#### admin.key
-### ***kube-scheduler***
-#### scheduler.crt
-#### scheduler.key
-### ***kube-controller-manager***
-#### controller-manager.crt
-#### controller-manager.key
-### ***kubelet***
-#### kubelet.crt
-#### kubelet.key
-### ***kube-proxy***
-#### proxy.crt
-#### proxy.key
-### ***kube-apiserver***
-#### **to etcd**
-##### apiserver-etcd-client.crt
-##### apiserver-etcd-client.key
-#### **to kubelet**
-##### apiserver-kubelet-client.crt
-##### apiserver-kubelet-client.key
+# **core group(/api)** 
+## v1
+### pods
+### nodes
+### services
+### namespaces
+### ....
+### ....
 
-## **Server**
-### ***kube-apiserver***
-#### apiserver.crt
-#### apiserver.key
-### ***etcd***
-#### etcd.crt
-#### etcd.key
-### ***kubelet***
-#### kubelet.crt
-#### kubelet.key
-
-## **CA**
-### ca.crt
-### ca.key
+# **named group(/apis)**
+## apps
+### v1
+#### deployments
+#### replicaset
+#### ....
+#### ....
+## extensions
+## networking.k8s.io
+## storage.k8s.io
+## ....
+## ....
+# .....
+# .......
 
 
