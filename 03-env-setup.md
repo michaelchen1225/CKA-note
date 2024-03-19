@@ -79,8 +79,9 @@ $ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkg
 
 * 查看目前可用的`kubeadm`版本
 ```bash
-apt-cache madison
-# 這裡會列出許多版本，以下範例選用1.28.0-1.1
+apt update
+apt-cache madison kubeadm
+# 這裡會列出許多版本，以下範例選用1.29.1-1.1
 ```
 
 > 當然也可以自行選擇其他版本，不過要記得下面的指令不要照抄
@@ -89,7 +90,7 @@ apt-cache madison
 
 ```text
 sudo apt-get update
-sudo apt-get install -y kubelet=1.28.0-1.1 kubeadm=1.28.0-1.1 kubectl=1.28.0-1.1
+sudo apt-get install -y kubelet=1.29.1-1.1 kubeadm=1.29.1-1.1 kubectl=1.29.1-1.1
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
@@ -121,7 +122,7 @@ sudo sysctl --system
 初始化時，記得指定apiserver的IP:
 > 以下操作僅於master node 上操作。
 ```text
-sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> \ 
+sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> 
 --pod-network-cidr=10.244.0.0/16
 ```
 
