@@ -40,30 +40,30 @@ spec:
     image: nginx
 ``` 
 * 建立Pod
-```text 
+```bash 
 $ kubectl apply -f label-test.yaml
 ```
 **補充**
 
 > 當然了，你也可以用`kubectl run`建立一個帶有Label的Pod:
-```text
+```bash
 $ kubctl run label-test --image nginx --labels app=nginx
 ```
 > 你也可以用`kubectl label`來為已經存在的Pod加上Label:
-```text
+```bash
 $ kubectl label pod label-test app=nginx
 # kubectl label 指令格式: kubectl label <object-type> <object-name> <key>=<value>
 ```
 
 * 查看Pod的Label
-```text
+```bash
 $ kubectl get pod label-test --show-labels
 NAME         READY   STATUS    RESTARTS   AGE   LABELS
 label-test   1/1     Running   0          70s   app=nginx
 ```
 
 * 使用`Label Selector`篩選出標籤為`app: nginx`的Pod
-```text
+```bash
 $ kubectl get pod -l app=nginx
 NAME         READY   STATUS    RESTARTS   AGE
 label-test   1/1     Running   0          4m11s
@@ -90,12 +90,12 @@ spec:
         image: nginx
 ```
 * 建立`ReplicaSet`
-```text
+```bash
 $ kubectl apply -f nginx-rs.yaml
 ```
 
 * 查看`ReplicaSet`，是否符合我們設定的`desired number`?
-```text
+```bash
 $ kubectl get rs
 NAME       DESIRED   CURRENT   READY   AGE
 nginx-rs   3         3         3       10s
@@ -106,17 +106,17 @@ nginx-rs   3         3         3       10s
 不過，單純的維持數量並不是`Pod scaling`的精隨，畢竟顧名思義，它是「Pod的**增減**」。既然是「增減」複製品的數量，當然就可以調整`desired number`。
 
 我們可以用以下指令調整`desired number`:
-```text
+```bash
 kubectl scale rs <rs_name> --replicas <new_desired_number>
 ```
 
 * 例如將剛剛建立的`nginx-rs`的`desired number`增加至5
-```text
+```bash
 kubectl scale rs nginx-rs --replicas 5
 ```
 
 * 當然也可以漸少至2
-```text
+```bash
 kubectl scale rs nginx-rs --replicas 3
 ```
 
@@ -147,29 +147,29 @@ spec:
 ```
 
 * 建立`Deployment`
-```text
+```bash
 $ kubectl apply -f nginx-deploy.yaml
 ```
 > 當然了，你也可以用指令建立Deployment:
-```text
+```bash
 kubectl create deployment nginx-deploy --image nginx --replicas 3
 ```
 
 * 看看`Deployment`狀況如何
-```text
+```bash
 $ kubectl get deploy nginx-deploy
 NAME           READY   UP-TO-DATE   AVAILABLE   AGE
 nginx-deploy   3/3     3            3           113s
 ```
 
 * 試試看更新`image`
-```text
+```bash
 $ kubectl set image deployment nginx-deploy nginx=nginx:1.14.2
 #注意: 是 <容器名稱>=<新image>，並不是<舊image>=<新image>                   
 ```
 
 * describe 看看是不是真的更新了
-```text
+```bash
 $ kubectl describe deployment nginx-deploy
 ...
 ...(省略)
@@ -198,7 +198,7 @@ Conditions:
 ![https://ithelp.ithome.com.tw/upload/images/20230926/20161118emE0mmLEST.jpg](https://ithelp.ithome.com.tw/upload/images/20230926/20161118emE0mmLEST.jpg)
 
 利用指令也可以看出這個關係:
-```text
+```bash
 $ kubectl get deploy
 NAME           READY   UP-TO-DATE   AVAILABLE   AGE
 nginx-deploy   3/3     3            3           13m
