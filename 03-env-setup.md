@@ -71,21 +71,25 @@ docker info | grep -i cgroup
 安裝以上三個組件的方式如下:
 * 首先，把kubernetes的repo加入到apt的source list中
 ```text
-sudo apt update && sudo apt install -y curl
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
-sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+$ sudo apt-get update
+$ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 ```
 
 * 查看目前可用的`kubeadm`版本
-```text
-apt list -a kubeadm
-# 這裡會列出許多版本，以下範例選用1.28.0-00
+```bash
+apt-cache madison
+# 這裡會列出許多版本，以下範例選用1.28.0-1.1
 ```
 
+> 當然也可以自行選擇其他版本，不過要記得下面的指令不要照抄
+
 * 安裝`kubelet`、`kubeadm`、`kubectl`
+
 ```text
 sudo apt-get update
-sudo apt-get install -y kubelet=1.28.0-00 kubeadm=1.28.0-00 kubectl=1.28.0-00
+sudo apt-get install -y kubelet=1.28.0-1.1 kubeadm=1.28.0-1.1 kubectl=1.28.0-1.1
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
