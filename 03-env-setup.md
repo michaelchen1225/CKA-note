@@ -34,13 +34,13 @@
 
 ### Step 2 : 安裝Docker
 **每台**VM上都需要安裝container runtime，這裡以`Docker`為例:
-```text
+```bash
 sudo apt update
 sudo apt install -y docker.io
 sudo systemctl enable docker
 ```
 安裝Docker後需要更改cgroup driver，因為Kubernetes預設使用`systemd`，而`Docker`預設使用`cgroupfs`。所以需要更改`Docker`的cgroup driver:
-```text
+```bash
 sudo cat <<EOF | sudo tee /etc/docker/daemon.json
 { "exec-opts": ["native.cgroupdriver=systemd"],
 "log-driver": "json-file",
@@ -51,12 +51,12 @@ sudo cat <<EOF | sudo tee /etc/docker/daemon.json
 EOF
 ```
 接著重新啟動`Docker`:
-```text
+```bash
 sudo systemctl restart docker
 ```
 
 這樣cgroup driver就改成`systemd`了:
-```text
+```bash
 docker info | grep -i cgroup
 # cgroup Driver: systemd
 ```
@@ -69,13 +69,18 @@ docker info | grep -i cgroup
   * `kubectl`: 用來與`cluster`進行溝通的cli工具，讓你能透過下指令的方式操作`cluster`
 
 安裝以上三個組件的方式如下:
+
 * 首先，把kubernetes的repo加入到apt的source list中
-```text
-$ sudo apt-get update
-$ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
-$ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-$ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+```bash
+sudo apt-get update
+
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 ```
+> 如果是其他版本的Linux，可參考[官方文件](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl)
 
 * 查看目前可用的`kubeadm`版本
 ```bash
@@ -88,25 +93,25 @@ apt-cache madison kubeadm
 
 * 安裝`kubelet`、`kubeadm`、`kubectl`
 
-```text
+```bash
 sudo apt-get update
 sudo apt-get install -y kubelet=1.29.1-1.1 kubeadm=1.29.1-1.1 kubectl=1.29.1-1.1
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
 * 檢查`kubeadm`是否安裝成功 
-```text
+```bash
 kubeadm version
 ```
 ### Step4 : 關閉swap並啟用ip_forward
 在預設上，如果swap沒有被關閉，可能會導致`kubelet`無法正常運作。所以需要先關閉swap:
-```text
+```bash
 sudo swapoff -a # 暫時關閉
 vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
 ```
 
 啟用ip_forward:
-```text
+```bash
 sudo modprobe overlay
 sudo modprobe br_netfilter
 sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
@@ -121,13 +126,12 @@ sudo sysctl --system
 
 初始化時，記得指定apiserver的IP:
 > 以下操作僅於master node 上操作。
-```text
-sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> 
---pod-network-cidr=10.244.0.0/16
+```bash
+sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16
 ```
 
 初始化後，會出現類似以下的訊息:
-```text
+```bash
 Your Kubernetes control-plane has initialized successfully!
 
 To start using your cluster, you need to run the following as a regular user:
@@ -148,7 +152,7 @@ as root:
 ```
 
 依照訊息的提示，將管理員的kubeconfig設定好:
-```text
+```bash
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -158,12 +162,12 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ### Step 6 : 加入worker node
 在master node上初始化成功的輸出中，最下方有提示該如何加入worker node，我們就直接依照指示操作即可:
 > 以下操作僅於worker node上操作。
-```text
+```bash
   kubeadm join <control-plane-host>:<control-plane-port> --token <token> --discovery-token-ca-cert-hash sha256:<hash>
 ```
 
 加入成功後，回到master node上，執行以下指令:
-```text
+```bash
 kubectl get nodes
 # 會看到master node以及worker node
 ```
@@ -171,22 +175,40 @@ kubectl get nodes
 
 ### Step 7 : 安裝Pod network
 
-`Pod`之間必須透過`CNI`，也就是`Container Network Interface`進行溝通。所以需要安裝`CNI`，這裡以常見的`flannel`為例:
-```text
+你可以選用常見的CNIs，例如`flannel`、`calico`等。這裡兩種安裝方式都會介紹:
+
+**flannel**
+
+```bash
 kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
 回到master node上，執行以下指令:
-```text
+```bash
 kubectl get nodes -w
 # -w會持續監控node的狀態
 ```
 
 等待一段時間後，當`node`的狀態變成`Ready`，就代表`cluster`已經建置完成了。
 
+**calico**
+
+```bash
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/tigera-operator.yaml
+```
+
+```bash
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/custom-resources.yaml
+```
+```bash
+watch kubectl get pods -n calico-system
+```
+
+同樣等待一下讓`node`的狀態變成`Ready`
+
 ### 加入新的worker node
 
 如過在未來需要加入新的`worker node`，需要在master node上執行以下指令:
-```text
+```bash
 kubeadm token create --print-join-command
 ```
 
@@ -198,12 +220,12 @@ kubeadm token create --print-join-command
 Linux的bash shell有一個很方便的功能，就是當你輸入指令時，按下`tab`鍵會自動補全。而`kubectl`也有這個功能，不過需要以下設定:
 
   * 下載bash completion:
-  ```text
+  ```bash
   sudo apt install bash-completion
   ```
 
   * 設定`kubectl`的bash completion:
-  ```text
+  ```bash
   echo 'source <(kubectl completion bash)' >>~/.bashrc
   source ~/.bashrc
   ```
@@ -212,7 +234,7 @@ Linux的bash shell有一個很方便的功能，就是當你輸入指令時，�
 
   > 除此之外，為了更快速地下達指令，通常會將`kubectl`的alias設定成`k`。而設定alias的方式與相對應的bash completion設定方式如下:
 
-  ```text
+  ```bash
   echo 'alias k=kubectl' >>~/.bashrc
   echo 'complete -o default -F __start_kubectl k' >>~/.bashrc
   source ~/.bashrc
@@ -224,7 +246,7 @@ Linux的bash shell有一個很方便的功能，就是當你輸入指令時，�
 
 假如你今天都沒有做任何設定，直接在`worker node`上執行`kubectl`指令，會發現它是無法執行的。這是因為`kubectl`的設定檔是在`master node`上，也就是`/etc/kubernetes/admin.conf`，所以必須將`/etc/kubernetes/admin.conf`複製到`worker node`上的`$HOME/.kube/config`(如同我們最初對master node所做的一樣)，才可以使用`kubectl`指令。在`worker node`上執行以下操作:
 
-```text
+```bash
 mkdir -p $HOME/.kube
 scp master:/etc/kubernetes/admin.conf ~/.kube/config
 ```
