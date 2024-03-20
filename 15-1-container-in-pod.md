@@ -63,6 +63,9 @@ nginx-fluentd   NodePort   10.96.59.112   <none>        80:32134/TCP   46s
 
 ```bash
 $ curl localhost:32134
+```
+回應:
+```txt
 <!DOCTYPE html>
 <html>
 <head>
@@ -88,7 +91,7 @@ Commercial support is available at
 </html>
 ```
 
-送出請求後，我們可以在`fluentd`容器的log中看到log:
+送出請求後，我們可以在`fluentd`容器的「/var/log/nignx/access.log」中看到log:
 ```bash
 $ kubectl exec -it nginx-fluentd -c fluentd -- cat /var/log/nginx/access.log
 192.168.0.0 - - [06/Mar/2024:08:40:13 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/7.68.0" "-"
