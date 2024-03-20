@@ -18,7 +18,7 @@
 
 在pod中同樣有許多的目錄，假如我們想在pod消失後仍保留特定的資料，例如將pod中的「/var/log」目錄保存下來，這同樣也能通過「掛載」的方式來達成。
 
-所以我們需要一顆「硬碟」來存資料，k8s提供了`volume`擔任「硬碟」的角色，讓我們可以將一個`volume`掛載到pod中的某個目錄下:
+所以我們需要一顆「硬碟」來儲存資料，k8s提供了`volume`擔任「硬碟」的角色，讓我們可以將一個`volume`掛載到pod中的某個目錄下:
 ![volume](26-2-volume.png)
 
 除了保存資料之外，`volume`還有另一個用途: 讓pod中的多個container共享資料。
@@ -87,7 +87,7 @@ spec:
 ![emptyDir](26-3-emptyDir.png)
 
 如此一來，一旦`nginx`寫入log資料，`fluentd`就能透過讀取掛載在自己/var/log/nginx目錄下的`nginx-log-volume`，來收集`nginx`的log。
-> 在[Day 15]有使用curl測試過共享的效果，需要的話可以回去翻一下
+> 在[Day 15](15-1-container-in-pod.md)有使用curl測試過共享的效果，需要的話可以回去翻一下
 
 **補充**
 
@@ -99,7 +99,7 @@ spec:
 
 **範例**
 
-> 在這個範例中，我們會使用`hostPath`來指定自訂的html來取代nginx的預設網頁
+> 在這個範例中，我們使用`hostPath`來指定自訂的html來取代nginx的預設網頁
 
 * 首先，在node上建立一個目錄:
 
@@ -127,6 +127,7 @@ EOF
 ```
 
 * 然後創建pod的yaml檔:
+
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -150,7 +151,9 @@ spec:
       path: /tmp/test-html
 ```
 
-> 如此一來，nginx容器中的「/usr/share/nginx/html」底下的檔案就會被「/tmp/test-html」中的「index.html」取代。
+> 如此一來，nginx容器中的「/usr/share/nginx/html」底下就會是「/tmp/test-html」中的「index.html」:
+
+![hostPath](26-4-hostpath.png)
 
 
 * 創建pod後，檢查狀態順便看一下ip:
@@ -185,9 +188,8 @@ curl 10.42.0.9:80
 
 **提醒**
 
-雖然`hostPath`用起來相當簡單，但是會有安全上的疑慮存在，一般建議掛載成「read-only」，或使用等下會介紹的`PersistentVolume`來取代
+雖然`hostPath`用起來相當簡單，但是會有安全上的疑慮，例如不明寫入會直接影響到host。因此一般建議掛載成「read-only」模式:
 
-* 掛載成「read-only」:
 
 ```yaml
 ...省略...
@@ -243,7 +245,10 @@ spec:
       secretName: user-data-secret
   ```
 
-  > 其實configMap和secret的使用方式很像
+  > 其實configMap和secret的使用方式很像。掛載後長這樣:
+
+  ![configMap-secret](26-5-config-secret.png)
+
 
   * 建立pod後，透過`kubectl exec`來檢查是否有成功掛載:
 
@@ -260,4 +265,5 @@ $ kubectl exec -it nginx -- ls /etc/secret/PASSWORD
 # References
 
 [volume](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath)
+
 [configmap as volume](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#add-configmap-data-to-a-volume)
