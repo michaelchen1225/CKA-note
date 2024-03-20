@@ -66,6 +66,7 @@ crictl ps -a
 ```text
 2024-03-13T12:41:01.395950398Z stderr F W0313 12:41:01.395821       1 logging.go:59] [core] [Channel #198 SubChannel #199] grpc: addrConn.createTransport failed to connect to {Addr: "127.0.0.1:2379", ServerName: "127.0.0.1:2379", }. Err: connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:2379: connect: connection refused"
 ```
+
 可以看到錯誤原因是無法連線到`etcd`(127.0.0.1:**2379**)，這時就可以去檢查`etcd`的狀態了。
 
 
