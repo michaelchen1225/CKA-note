@@ -117,6 +117,11 @@ etcd.yaml  kube-apiserver.yaml  kube-controller-manager.yaml  kube-scheduler.yam
 
 有時候因為不知名的原因，修改`static pod`的`yaml`後，卻沒有重啟成功，這時可以將`yaml`從原本的路徑搬出去再搬回來，讓`kubelet`重新讀取。
 
+例如:
+```bash
+mv /etc/kubernetes/manifests/etcd.yaml /tmp
+mv /tmp/etcd.yaml /etc/kubernetes/manifests
+```
 
 ## DaemonSet
 
