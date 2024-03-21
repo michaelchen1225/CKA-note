@@ -1,12 +1,6 @@
 # storage -- Volumn
 
-當pod的生命週期一結束，裡面的資料也會隨之消失。為了保存這些資料，我們將會使用一些k8s中的`storage`來保存，常見的為以下三種:
-
-  * Volumn
-  * PersistentVolume (PV) & PersistentVolumeClaim (PVC)
-  * StorageClass
-
-今天我們先來看看`Volumn`。
+當pod的生命週期一結束，裡面的資料也會隨之消失;另外，「資料共享」也是一種常見的需求。總之在cluster中，各種與「儲存資料」有關的需求都能透過`storage`來完成，底下我們就先來看一下k8s中相當基礎的storage概念: `volume`。
 
 ## Volumn
 
@@ -16,14 +10,10 @@
 
 在上圖中，「sda1」是一顆硬碟，用來保存「/home」中的資料，這種方式就稱為「掛載(mount)」，而/home就稱為「掛載點(mount point)」。
 
-在pod中同樣有許多的目錄，假如我們想在pod消失後仍保留特定的資料，例如將pod中的「/var/log」目錄保存下來，這同樣也能通過「掛載」的方式來達成。
-
-所以我們需要一顆「硬碟」來儲存資料，k8s提供了`volume`擔任「硬碟」的角色，讓我們可以將一個`volume`掛載到pod中的某個目錄下:
+在k8s中，上面的「電腦」就是pod中的container，而「硬碟」就是pod中的`volume`，我們通樣以「掛載」的方式將一個`volume`掛載到pod中的container:
 ![volume](26-2-volume.png)
 
-除了保存資料之外，`volume`還有另一個用途: 讓pod中的多個container共享資料。
-
-> 例如在[Day 15](15-1-container-in-pod.md)的「sidecar container」範例中，pod裡有兩個`container`需共享log資料，因此我們使用了一個`volume`來存放log資料。
+除了存放資料之外，`volume`還有另一個用途: 讓pod中的多個container共享資料。例如在[Day 15](15-1-container-in-pod.md)的「sidecar container」範例中，pod裡有兩個`container`需共享log資料，因此我們使用了一個`volume`來存放log資料。
 
 pod中使用`volume`的格式如下:
 ```yaml
@@ -43,11 +33,19 @@ spec:
     <volume-type>: <volume-configuration>
 ```
 
-在上面的格式中，可以注意到有<volume-type>需要設定，你可以依不同需求選擇`volume`類型，例如:
+在上面的格式中，volume是定義在pod內部的，而不用先定義一個`volume`物件的yaml在引入pod中，所以pod與volume是共享同一個生命週期的。也就是說，pod如果沒了，volume也會消失。
+
+另外可以注意到有<volume-type>需要設定，你可以依不同需求選擇`volume`**類型**，例如我不想要volume內的資料和pod一起消失，在雲端的話我們可以使用cloud storage作為volume。
+
+其他的`volume type`有:
 
   * `emptyDir`
   * `hostPath`
   * `configMap` & `secret`
+  * `nfs`
+
+> ，關於其他的`volume type`，可直接前往[官網](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types)查詢。
+
 
 ### emptyDir
 
@@ -260,7 +258,7 @@ $ kubectl exec -it nginx -- ls /etc/secret/PASSWORD
 123456
 ```
 
-以上為Volumn的介紹，接下來會介紹`PersistentVolume`和`StorageClass。
+以上為Volumn的介紹
 
 # References
 
