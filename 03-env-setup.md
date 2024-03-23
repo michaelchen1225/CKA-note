@@ -32,34 +32,70 @@
   * [在virtualbox上安裝Ubuntu](https://karenkaods.medium.com/%E4%B8%89%E6%AD%A5%E9%A9%9F%E5%9C%A8-windows-%E9%9B%BB%E8%85%A6%E4%B8%8A%E5%AE%89%E8%A3%9D-vitrualbox-%E5%95%9F%E5%8B%95-ubuntu-%E8%99%9B%E6%93%AC%E6%A9%9F-f45619d3c088)
   * [設定Ubuntu IP](https://sam.liho.tw/2022/09/29/ubuntu-22-04-%E6%8C%87%E4%BB%A4-cli-%E8%A8%AD%E5%AE%9A%E7%B6%B2%E8%B7%AF%E7%AD%86%E8%A8%98/)
 
-### Step 2 : 安裝Docker
-**每台**VM上都需要安裝container runtime，這裡以`Docker`為例:
+### Step 2 : 安裝container runtime
+
+**每台**VM上都需要安裝container runtime，這裡以`containerd`為例:
 ```bash
 sudo apt update
-sudo apt install -y docker.io
-sudo systemctl enable docker
-```
-安裝Docker後需要更改cgroup driver，因為Kubernetes預設使用`systemd`，而`Docker`預設使用`cgroupfs`。所以需要更改`Docker`的cgroup driver:
-```bash
-sudo cat <<EOF | sudo tee /etc/docker/daemon.json
-{ "exec-opts": ["native.cgroupdriver=systemd"],
-"log-driver": "json-file",
-"log-opts":
-{ "max-size": "100m" },
-"storage-driver": "overlay2"
-}
-EOF
-```
-接著重新啟動`Docker`:
-```bash
-sudo systemctl restart docker
+sudo apt install -y containerd
+sudo systemctl enable containerd
 ```
 
-這樣cgroup driver就改成`systemd`了:
+> containerd和docker都是container runtime， 兩者的差異可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
+
+安裝後，需要將cgroup-driver設定為`k8s cluster`所需的`systemd`:
+
 ```bash
-docker info | grep -i cgroup
-# cgroup Driver: systemd
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
 ```
+
+編輯`/etc/containerd/config.toml`，找到「[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]」，將`SystemdCgroup`設定為`true`:
+```json
+...
+.....(省略)....
+...
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+  BinaryName = ""
+  CriuImagePath = ""
+  CriuPath = ""
+  CriuWorkPath = ""
+  IoGid = 0
+  IoUid = 0
+  NoNewKeyring = false
+  NoPivotRoot = false
+  Root = ""
+  ShimCgroup = ""
+  SystemdCgroup = true # 改這裡!
+
+...
+.....(省略)....
+```
+
+然後，找到`containerd`的啟動腳本，加入參數引用剛剛改過的`config.toml`:
+```bash
+vim /lib/systemd/system/containerd.service
+``` 
+
+* 找到[Service]區塊下的`ExecStart`，加入`--config /etc/containerd/config.toml`:
+```text
+[Service]
+ExecStart=/usr/bin/containerd --config /etc/containerd/config.toml
+```
+
+最後重新啟動`containerd`:
+```bash
+sudo systemctl restart containerd
+```
+
+最終檢查一下是否有將「SystemdCgroup=ture」設定成功:
+```bash
+containerd config default | grep SystemdCgroup
+# SystemdCgroup = true
+```
+**提醒**
+
+請確保上述步驟有設定成功，否則cluster建立後重要元件會不斷重啟而無法使用!
 
 ### Step 3 : 安裝必要組件
 
@@ -129,6 +165,8 @@ sudo sysctl --system
 ```bash
 sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16
 ```
+
+> pod IP範圍(`--pod-network-cidr`)的相關含意將會在[Day 28](28-network.md)中提到
 
 初始化後，會出現類似以下的訊息:
 ```bash
@@ -251,13 +289,51 @@ mkdir -p $HOME/.kube
 scp master:/etc/kubernetes/admin.conf ~/.kube/config
 ```
 
+### 補充3: 除錯
+
+如果初始化cluster後出現各種問題，一定要多加利用log來除錯:
+
+* 列出壞掉的容器:
+```bash
+crictl ps -a
+```
+
+* 查看容器的log:
+```bash
+crictl logs <container-id>
+```
+
+如果你覺得完全搞砸了、沒救了想直接砍掉重來，可以使用`kubeadm reset`:
+```bash
+kubeadm reset
+```
+接著清除所有相關的檔案:
+```bash
+rm -rf /etc/kubernetes/
+rm -rf .kube/
+rm -rf /etc/cni/
+```
+
+最後，解除安裝和清除所有kubernetes的套件:
+```bash
+apt-get purge kubeadm kubectl kubelet kubernetes-cni kube* 
+apt-get autoremove
+```
+
+
 ## 今日小節
 今天提供了兩種方式來建置練習環境。如果只是想練習一些基本操作，那playground應該就足夠了。但如果是練習多節點的操作，或想更全面的了解`cluster`，那麼使用`kubeadm`來建置`cluster`對於初學者來說是一個不錯的選擇。(補充: 之所以說初學者，是因為kubeadm還是相對簡單，如果有興趣，可以上網搜尋"Kubernetes The Hard Way ")
 
 ## 參考資料
 * [Create a Kubernetes Cluster using Virtualbox — The Hard Way](https://medium.com/@mojabi.rafi/create-a-kubernetes-cluster-using-virtualbox-and-without-vagrant-90a14d791617)
 
+* [Kubernetes Cluster Setup with Containerd](https://saurabhkharkate05.medium.com/kubernetes-cluster-setup-with-containerd-945214a0d02c)
+
 * [Installing kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
 
 * [Day 21：使用kubeadm建立集群](https://ithelp.ithome.com.tw/articles/10305268)
+
+* [How to completely uninstall kubernetes](https://stackoverflow.com/questions/44698283/how-to-completely-uninstall-kubernetes)
+
+
 
