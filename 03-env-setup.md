@@ -8,9 +8,9 @@
   1. [killercoda](https://killercoda.com/)
   2. [Play with Kubernetes](https://labs.play-with-k8s.com/)
 
-## 方法二 : kubeadmin
+## 方法二 : kubeadm
 
-不過使用`playground`的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的`cluster`，可以使用`kubeadmin`進行建置。`kubeadmin`是一個專門用來部署`Kubernetes`的工具，能夠快速的建立一個`cluster`，並且可以直接在本地端進行操作。以下將以virtualbox為例，介紹如何使用`kubeadmin`進行建置。
+不過使用`playground`的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的`cluster`，可以使用`kubeadm`進行建置。`kubeadm`是一個專門用來部署`Kubernetes`的工具，能夠快速的建立一個`cluster`，並且可以直接在本地端進行操作。以下將以virtualbox為例，介紹如何使用`kubeadm`進行建置。
 
 ### Step 1 : 準備環境
 
@@ -19,7 +19,7 @@
   * 2 CPU
 
 在網路設定方面，每台虛擬機準備兩張網路卡:
-  * 一張選用`NAT`方便連上網際網路
+  * 一張選用`NAT`
   * 一張選用橋接介面卡，方便進行`cluster`內部的VM溝通。記得這張不要用`DHCP`，需要自行手動設定IP。例如下表:
   
   VM | IP
@@ -30,6 +30,7 @@
 
 至於安裝VM與設定IP的方式就不再此贅述，可以參考以下文章:
   * [在virtualbox上安裝Ubuntu](https://karenkaods.medium.com/%E4%B8%89%E6%AD%A5%E9%A9%9F%E5%9C%A8-windows-%E9%9B%BB%E8%85%A6%E4%B8%8A%E5%AE%89%E8%A3%9D-vitrualbox-%E5%95%9F%E5%8B%95-ubuntu-%E8%99%9B%E6%93%AC%E6%A9%9F-f45619d3c088)
+  
   * [設定Ubuntu IP](https://sam.liho.tw/2022/09/29/ubuntu-22-04-%E6%8C%87%E4%BB%A4-cli-%E8%A8%AD%E5%AE%9A%E7%B6%B2%E8%B7%AF%E7%AD%86%E8%A8%98/)
 
 ### Step 2 : 安裝container runtime
