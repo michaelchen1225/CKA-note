@@ -1,13 +1,82 @@
 # network CNI
 
-* 查看cni:
+在前面使用kubeadm安裝cluster與介紹service時，我們多多少少都有提到`CNI`，當時給出的解釋是:
+
+> 建立**虛擬網路**供`cluster`內部溝通使用
+
+今天我們就來探討一下到底何謂`CNI`? 它與service的關係是什麼? 相關的設定檔在哪裡?
+
+## What's CNI
+
+`CNI`的全名是`Container Network Interface`，它的目的是搞定cluster中一切的**網路連線問題**。
+
+沒錯，`CNI`處理的範圍就是這麼廣，那所謂的「網路連線問題」例如:
+
+  * 讓pod擁有用來通訊的IP
+
+  * 讓整個cluster中pod能夠互相通訊
+
+  * cluster中的路由規劃
+
+如果沒有`CNI`，那麼你就必須自己來處理這些問題，就像是在現實中處理多台電腦的網路連線問題一樣，只不過這裡的「電腦」不是普通的多，一個cluster中的pod可能就有上百、上千個，而且又隨時會刪除或重啟，讓人工處理這樣的網路配置實在是強人所難。
+
+不過，k8s並沒有提供預設的解法來解絕「網路連線問題」，而是定義出一個CNI「該做甚麼、該如何做」，只要你可以滿足這些規範，人人都可以按照這些規範來開發`CNI`，最終以「插件(**Plugins**)」的形式讓使用者依需求挑選，最終部署在cluster中。
+
+那常見的`CNI`例如:
+  
+  * `calico`
+
+  * `flannel`
+
+  * `weave`
+
+  * `cilium`
+
+> CNI是CNCF的一個開源專案，你可以在他們的[github](https://github.com/containernetworking/cni)上找到更多關於CNI的資訊。
+
+
+## CNI 與 Service、kube-proxy的關係
+
+目前為止的章節中，我們總共提到三種與網路相關的元件:
+
+  * `CNI` : cluster中的**網路基礎**，包括 IP 分配、虛擬網路卡設定等。
+
+  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod
+
+  * `kube-proxy` : 負責處理cluster中的**路由規則**(預設proxy mode為`iptables`)
+
+當一個 Pod 被建立並建立service後，會發生:
+
+* `CNI` (Container Network Interface)：配置網絡接口，與分配一個 IP 給pod，再設定虛擬網路卡介面等基礎設定。
+
+
+* `Service`: k8s並不會自動的建立service。如果使用者依需求自行幫pod建立`service`後，`kube-apiserver`會為這個service分配一個IP
+
+* `kube-proxy`：隨時的觀察`service`的狀態，當有`service`被建立後，`kube-proxy`會配置相對應的路由規則，讓整個cluster都能夠存取這個`service`。當`service`被刪除後，`kube-proxy`也會刪除相對應的路由規則。
+
+> 至於建立service有哪些好處，service有哪些類別以及如何建立，可以參考[Day06](06-1-svc.md)
+
+**補充** kube-proxy的三種proxy mode:
+
+* `iptables` 
+
+* `ipvs`
+
+* `kernelspace`
+
+> 舊一點的文章可能會看到另一種proxy mode叫做`userspace`，但目前已經棄用了。
+
+那系統預設的proxy mode是`iptables`，你可以透過以下指令查看:
+
 ```bash
-kubectl get pods -n kube-system
+kubectl -n kube-system logs kube-proxy-85drq
 ```
+```text            
+I0325 09:25:49.947640       1 server_others.go:72] "Using iptables proxy"
+```
+## 相關設定
 
-> 例如: `calico`、`flannel`、`cilium`、`weave`等
-
-* 通常支援的cni執行檔會在`/opt/cni/bin/`目錄
+* 支援的cni執行檔會在`/opt/cni/bin/`目錄
 ```bash
 ls /opt/cni/bin/
 ```
@@ -17,7 +86,7 @@ andwidth  calico       dhcp   firewall  host-device  install  loopback  portmap 
 bridge     calico-ipam  dummy  flannel   host-local   ipvlan   macvlan   ptp      static  tuning  vrf
 ```
 
-* 通常正在使用的`cni`設定檔會在`/etc/cni/net.d/`目錄
+* 正在使用的`cni`設定檔會在`/etc/cni/net.d/`目錄
 ```bash
 ls /etc/cni/net.d/
 ```
@@ -26,20 +95,20 @@ ls /etc/cni/net.d/
 10-canal.conflist  calico-kubeconfig
 ```
 
-來看一下設定檔:
-```json
+來看一下10-canal.conflist設定檔:
+```yaml
 {
   "name": "k8s-pod-network",
   "cniVersion": "0.3.1",
   "plugins": [
     {
-      "type": "calico", # 使用calico
+      "type": "calico", # 使用calico作為cni
       "log_level": "info",
-      "log_file_path": "/var/log/calico/cni/cni.log",
+      "log_file_path": "/var/log/calico/cni/cni.log", # log檔位置
       "datastore_type": "kubernetes",
       "nodename": "controlplane",
       "mtu": 0,
-      "ipam": {
+      "ipam": { # pod的ip範圍，等一下會解釋
           "type": "host-local",
           "subnet": "usePodCidr"
       },
@@ -61,7 +130,8 @@ ls /etc/cni/net.d/
 ...(省略)
 ```
 
-為了串聯整個cluster的node，每個node上都會有一個cni的agent，這個agent會負責處理pod之間的網路通訊:
+為了更有效率的管理每個node上的網路工作，以及node之間的封包傳遞，每個node都會有一個cni的`agent`，通常以`daemonset`的方式部署:
+
 ```bash
 kubectl get daemonset -n kube-system
 NAME         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
@@ -70,23 +140,11 @@ kube-proxy   2         2         2       2            2           kubernetes.io/
 ```
 
 
-## service 
-
-CNI 和 Service 在 Kubernetes 中各自扮演不同的角色：
-
-CNI 負責提供容器網路的基礎設施，包括 IP 地址分配和路由設定。
-Service 提供了一種穩定的方式來訪問 Pod，使得其他 Pod 或外部客戶端可以穩定地訪問一組 Pod。
-
-service type recap:
-[Day 6](06-1-svc.md)
-
-* ClusterIP: 只能在cluster內部存取
-
-* NodePort: 在每個cluster的node上開一個port，可以透過node的ip:port存取
 
 ## IP範圍
 
-* pod的IP範圍由cni決定:
+當pod被建立後，`CNI`會為這個pod分配一個IP，而這個IP要從哪個「網段」中取得呢? 我們再來看一下`CNI`的設定檔:
+
 ```bash
 cat /etc/cni/net.d/10-canal.conflist | grep -A 3 -i ipam
 ```
@@ -94,63 +152,90 @@ cat /etc/cni/net.d/10-canal.conflist | grep -A 3 -i ipam
 ```
 "ipam":{"ranges":[[{"subnet":"10.5.0.0/24"}]],"type":"host-local"}
 ```
+> 所以IP的範圍就是從10.5.0.0.1 ~ 10.5.0.0.254
 
-但也有可能是這樣:
+但設定檔的ipam欄位也有可能是這樣:
 ```text
       "ipam": {
           "type": "host-local",
           "subnet": "usePodCidr" 
       },
 ```
+如果subnet設定為「usePodCidr」，代表cni使用的IP range 取決於k8s的設定，可以透過以下指令查看:
 
-或者，也可以直接查看cni的agent(pod):
 ```bash
-k get po -n kube-system weave-net-wbdzb -o yaml | grep  -i range -A 2
-    - name: IPALLOC_RANGE
-      value: 10.244.0.0/16
+kubectl get node -o yaml | grep -i podcidr
 ```
-
-如果長上面那樣，代表cni使用的IP range 取決於k8s的設定，可以透過以下指令查看:
-```bash
-$ k get node -o yaml | grep -i podcidr
+```text
     podCIDR: 192.168.0.0/24
     podCIDRs:
     podCIDR: 192.168.1.0/24
     podCIDRs:
 ```
 
-* service的IP範圍由kube-apiserver決定:
+
+至於service的IP範圍則是由kube-apiserver決定:
 ```bash
-cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i range 
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i range
+```
+```text
  - --service-cluster-ip-range=10.96.0.0/12
 ```
 
-範例: 建立了一個pod叫做nginx，並幫他建立一個service
-```bashcontrolplane $ iptables -L -t nat | grep nginx
-KUBE-MARK-MASQ  all  --  anywhere             anywhere             /* masquerade traffic for default/nginx external destinations */
-KUBE-EXT-2CMXP7HKUVJN7L6M  tcp  --  anywhere             anywhere             /* default/nginx */ tcp dpt:30608
-KUBE-MARK-MASQ  all  --  192.168.1.4          anywhere             /* default/nginx */
-DNAT       tcp  --  anywhere             anywhere             /* default/nginx */ tcp to:192.168.1.4:80
-KUBE-SVC-2CMXP7HKUVJN7L6M  tcp  --  anywhere             10.99.252.88         /* default/nginx cluster IP */ tcp dpt:http
-KUBE-MARK-MASQ  tcp  -- !192.168.0.0/16       10.99.252.88         /* default/nginx cluster IP */ tcp dpt:http
-KUBE-SEP-LJUUEGC24UMYBEWU  all  --  anywhere             anywhere             /* default/nginx -> 192.168.1.4:80 */
-controlplane $ k get svc
-NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
-kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP        18d
-nginx        NodePort    10.99.252.88   <none>        80:30608/TCP   44m
-controlplane $ k get po nginx 
-NAME    READY   STATUS    RESTARTS   AGE
-nginx   1/1     Running   0          45m
-controlplane $ k get po nginx  -o wide
-NAME    READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED NODE   READINESS GATES
-nginx   1/1     Running   0          45m   192.168.1.4   node01   <none>           <none>
+> 所以service的IP範圍是10.96.0.1 ~ 10.111.255.254
+
+那下我們在這樣的IP範圍下做了一個簡單的範例:
+
+**範例**
+
+* 建立了一個pod叫做nginx，並幫它建立一個service:
+
+```bash
+kubectl run nginx --image nginx --port 80
+kubectl expose pod nginx --port 80 --type NodePort
 ```
 
+* 檢查一下:
+```bash
+kubectl get po,svc
+```
+```text
+controlplane $ k get po,svc -o wide
+NAME        READY   STATUS    RESTARTS   AGE   IP            NODE     NOMINATED NODE   READINESS GATES
+pod/nginx   1/1     Running   0          22s   192.168.1.4   node01   <none>           <none>
 
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE   SELECTOR
+service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP        21d   <none>
+service/nginx-svc    NodePort    10.99.165.171   <none>        80:32455/TCP   8s    run=nginx
+```
+
+* 可以整理出以下資訊:
+  * pod的IP: 192.168.1.4
+  * pod所在的node: node01
+  * service的IP: 10.99.165.171
+  * nodePort: 32455
+
+* 來查看一下路由規則
+```bash
+iptables -L -t nat | grep nginx
+```
+```text
+KUBE-MARK-MASQ  all  --  anywhere             anywhere             /* masquerade traffic for default/nginx-svc external destinations */
+
+KUBE-EXT-HL5LMXD5JFHQZ6LN  tcp  --  anywhere             anywhere             /* default/nginx-svc */ tcp dpt:32455
+
+KUBE-MARK-MASQ  all  --  192.168.1.4          anywhere             /* default/nginx-svc */
+
+DNAT       tcp  --  anywhere             anywhere             /* default/nginx-svc */ tcp to:192.168.1.4:80
+
+KUBE-SVC-HL5LMXD5JFHQZ6LN  tcp  --  anywhere             10.99.165.171        /* default/nginx-svc cluster IP */ tcp dpt:http
+
+KUBE-MARK-MASQ  tcp  -- !192.168.0.0/16       10.99.165.171        /* default/nginx-svc cluster IP */ tcp dpt:http
+
+KUBE-SEP-IDDE442HC73W6UQJ  all  --  anywhere             anywhere             /* default/nginx-svc -> 192.168.1.4:80 */
+```
 **解釋**
-當一個 Pod 嘗試訪問 Service 時，流量首先會被路由到 Service 的虛擬 IP 地址（在這個例子中是 10.99.252.88）。然後，**kube-proxy** 在該節點上的 NAT 表中查找與該 Service 相關的規則，並將流量重定向到 Service 後端的 Pod 的 IP 地址（在這個例子中是 192.168.1.6）。這種過程是透明的，從而實現了 Pod 和 Service 之間的連接。
 
-**注意**
-
-pod的IP是由cni決定，service的IP是由kube-apiserver決定，所以當你建立一個service時，kube-apiserver會為這個service分配一個IP，而這個IP是不會重複的，所以當你刪除一個service，這個IP就會被釋放，可以被其他service使用。
+當流量打到nodePort(`32455`)時，，流量首先會被導向`nginx-svc`。然後，**kube-proxy**再將流量重新導到`nginx` 開放的port上(192.168.1.4:80)
+```
 
