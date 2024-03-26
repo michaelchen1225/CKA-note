@@ -1,4 +1,4 @@
-# network CNI
+# network : CNI and CoreDNS
 
 在前面使用kubeadm安裝cluster與介紹service時，我們多多少少都有提到`CNI`，當時給出的解釋是:
 
@@ -8,21 +8,26 @@
 
 ## What's CNI
 
-`CNI`的全名是`Container Network Interface`，它的目的是搞定cluster中一切的**網路連線問題**。
+`CNI`的全名是`Container Network Interface`，它的目的是搞定cluster中的**網路基本需求**。
 
-沒錯，`CNI`處理的範圍就是這麼廣，那所謂的「網路連線問題」例如:
+所謂的「基本需求」k8s有明確的定義:
 
-  * 讓pod擁有用來通訊的IP
+  * 讓整個cluser中的所有**pod**能不靠NAT即可互相溝通
 
-  * 讓整個cluster中pod能夠互相通訊
+  * 部署在每個node上的agent(例如:daemonset、kubelet)能與該node上的**pod**溝通
 
-  * cluster中的路由規劃
 
-如果沒有`CNI`，那麼你就必須自己來處理這些問題，就像是在現實中處理多台電腦的網路連線問題一樣，只不過這裡的「電腦」不是普通的多，一個cluster中的pod可能就有上百、上千個，而且又隨時會刪除或重啟，讓人工處理這樣的網路配置實在是強人所難。
+要滿足上述需求，cluster中就必須有「基本的」網路配置，例如:
 
-不過，k8s並沒有提供預設的解法來解絕「網路連線問題」，而是定義出一個CNI「該做甚麼、該如何做」，只要你可以滿足這些規範，人人都可以按照這些規範來開發`CNI`，最終以「插件(**Plugins**)」的形式讓使用者依需求挑選，最終部署在cluster中。
+  * pod的IP分配，這個IP必須要是獨立的，並且能與外界溝通
 
-那常見的`CNI`例如:
+  * 虛擬網路卡設定
+
+如果沒有`CNI`，那麼你就必須自己來處理這些問題，就像是在現實中處理多台電腦的網路連線問題一樣(配置網路卡、規劃網段、手動設定IP)，只不過這裡的「電腦」不是普通的多，一個cluster中的pod可能就有上百、上千個，而且又隨時會刪除或重啟，讓人工處理這樣的網路配置實在是強人所難。
+
+不過，k8s並沒有提供預設的`CNI`，而是定義出`CNI`「該做甚麼、該如何做」，只要滿足這些規範，人人都可以按照這些規範來開發`CNI`，並且以「插件(**Plugins**)」的形式讓使用者依需求挑選，最終部署在cluster中。
+
+常見的`CNI`例如:
   
   * `calico`
 
@@ -39,24 +44,25 @@
 
 目前為止的章節中，我們總共提到三種與網路相關的元件:
 
-  * `CNI` : cluster中的**網路基礎**，包括 IP 分配、虛擬網路卡設定等。
+  * `CNI` : cluster中的**網路基礎**，注重的是「如何配置pod的基本網路」，例如IP分配、虛擬網路卡設定
 
-  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod
+  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod，注重的是「如何穩定的存取pod」，例如NodePort、ClusterIP
 
-  * `kube-proxy` : 負責處理cluster中的**路由規則**(預設proxy mode為`iptables`)
+  * `kube-proxy` : 負責處理cluster中的**路由規則**，注重的是「如何轉發流量」，例如iptables、ipvs
 
 當一個 Pod 被建立並建立service後，會發生:
 
-* `CNI` (Container Network Interface)：配置網絡接口，與分配一個 IP 給pod，再設定虛擬網路卡介面等基礎設定。
-
+* `CNI` (Container Network Interface)：配置網絡接口，與分配一個 IP 給pod，再設定虛擬網路卡介面等**基礎**設定。
 
 * `Service`: k8s並不會自動的建立service。如果使用者依需求自行幫pod建立`service`後，`kube-apiserver`會為這個service分配一個IP
 
 * `kube-proxy`：隨時的觀察`service`的狀態，當有`service`被建立後，`kube-proxy`會配置相對應的路由規則，讓整個cluster都能夠存取這個`service`。當`service`被刪除後，`kube-proxy`也會刪除相對應的路由規則。
 
-> 至於建立service有哪些好處，service有哪些類別以及如何建立，可以參考[Day06](06-1-svc.md)
+> 至於建立service的介紹這裡就不再贅述，可以參考之前的[Day06](06-1-svc.md)
 
-**補充** kube-proxy的三種proxy mode:
+**補充** 
+
+kube-proxy的三種proxy mode:
 
 * `iptables` 
 
@@ -237,5 +243,65 @@ KUBE-SEP-IDDE442HC73W6UQJ  all  --  anywhere             anywhere             /*
 **解釋**
 
 當流量打到nodePort(`32455`)時，，流量首先會被導向`nginx-svc`。然後，**kube-proxy**再將流量重新導到`nginx` 開放的port上(192.168.1.4:80)
+
+# DNS
+
+* service
+
+格式: <service-name>.<namespace>.svc.cluster.local
+
+* pod
+
+格式: <pod-ip>.<namespace>.pod.cluster.local
+
+> pod-ip是指pod的IP，例如:192.168.132.1 --> 192-168-132-1.default.pod.cluster.local
+
+## CoreDNS
+
+k8s 網路中的DNS server
+
+
+設定檔: /etc/coredns/Corefile，使用conifgMap的方式傳送進coredns的pod中
+kubectl get cm -n kube-system
+  * 解讀設定檔
+
+
+coredns部署後，也會建立一個service讓大家(pod)存取:
+k get svc -n kube-system
+
+kubelet 會負責在pod剛建立時告訴pod DNS server的位置，這樣pod就可以透過DNS server來解析其他pod的IP。
+
+  * 看kubelet的設定檔: var/lib/kubelet/config.yaml
+
+在pod中測試dns:
+
+```bash
+host <svc-name>
 ```
+
+可以用全名也可以用簡寫，例如:
+
+<svc-name>.<namespace>.svc.cluster.local
+
+<svc-name>.<namespace>.svc
+
+<svc-name>  但是跨namespace的話，就要用全名
+
+> 這只有svc能用
+
+# ref
+
+[Network Plugins](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/)
+
+[The Kubernetes network model](https://kubernetes.io/docs/concepts/services-networking/#the-kubernetes-network-model)
+
+[kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/)
+
+[k8s 網路原理](https://www.cnblogs.com/BradMiller/p/12228264.html)
+
+[整合 CNI 的常見問題 — 坑就是挖給人踩的！](https://medium.com/starbugs/%E6%95%B4%E5%90%88-cni-%E7%9A%84%E5%B8%B8%E8%A6%8B%E5%95%8F%E9%A1%8C-%E5%9D%91%E5%B0%B1%E6%98%AF%E6%8C%96%E7%B5%A6%E4%BA%BA%E8%B8%A9%E7%9A%84-fd5d42b2ff2d)
+
+
+
+
 
