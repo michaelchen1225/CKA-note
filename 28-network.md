@@ -244,21 +244,265 @@ KUBE-SEP-IDDE442HC73W6UQJ  all  --  anywhere             anywhere             /*
 
 當流量打到nodePort(`32455`)時，，流量首先會被導向`nginx-svc`。然後，**kube-proxy**再將流量重新導到`nginx` 開放的port上(192.168.1.4:80)
 
-# DNS
-
-* service
-
-格式: <service-name>.<namespace>.svc.cluster.local
-
-* pod
-
-格式: <pod-ip>.<namespace>.pod.cluster.local
-
-> pod-ip是指pod的IP，例如:192.168.132.1 --> 192-168-132-1.default.pod.cluster.local
 
 ## CoreDNS
 
+如果想要使用fackbook的網頁，我們不需要知道fackbook server的IP，而是輸入`www.google.com`就可以了，這是因為`DNS server`幫我們將這個網址轉換成IP。
+
+ * 想知道某個URL的IP: host <URL>
+```bash
+host www.google.com
+```
+```text
+www.google.com has address 142.250.185.132
+www.google.com has IPv6 address 2a00:1450:4001:810::2004
+```
+
+ * 想知道某URL的IP以及列出DNS的IP: nslookup <URL>
+```bash
+nslookup www.google.com
+```
+```text
+Server:         8.8.8.8
+Address:        8.8.8.8#53
+
+Non-authoritative answer:
+Name:   www.google.com
+Address: 142.250.70.100
+Name:   www.google.com
+Address: 2404:6800:4009:830::2004
+```
+
+  * 通常系統預設的DNS server寫在`/etc/resolv.conf`中:
+```bash
+cat /etc/resolv.conf
+```
+```text
+
+nameserver 8.8.8.8
+nameserver 1.1.1.1
+```
+
+> 簡而言之，「DNS」的任務就是「完成domain name與IP的對應」
+
+在k8s中，也有`DNS server`來完成相同的任務。我們不需要知道service的IP，只要知道service的「domain name」即可存取，而k8s預設的`DNS server`就是`CoreDNS`。
+
+`CoreDNS`是一個用Go語言寫的DNS server，靈活性使它能在多種環境中部署，例如k8s cluster。
+
+`CoreDNS`以deployment的方式部署在cluster中，會不斷的透過master node來取得service的資訊，並依照這些資訊建立DNS的對應。pod可以透過存取`CoreDNS`的service來取得DNS對應。
+
+  * 安裝完cluster後，可以查看一下`CoreDNS`的狀況:
+
+```bash
+kubectl get deployments.apps -n kube-system coredns
+```
+```text
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+coredns   2/2     2            2           23d
+```
+
+  * 在cluster中，可以透過service來存取`CoreDNS`:
+```bash
+kubectl get svc -n kube-system
+```
+```text
+NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   23d
+```
+
+所以，如果有一pod想要存取`CoreDNS`，示意圖如下:
+
+
+  * 查看一下`CoreDNS`的設定檔相關訊息:
+
+```bash 
+kubectl describe deploy -n kube-system coredns
+```
+```yaml
+    Args:
+      -conf
+      /etc/coredns/Corefile # 設定檔位置
+...(略過)...
+    Mounts:
+      /etc/coredns from config-volume (ro)
+  Volumes: # 透過configMap導入設定檔
+   config-volume:
+    Type:               ConfigMap (a volume populated by a ConfigMap)
+    Name:               coredns
+    Optional:           false
+```
+
+
+## k8s中的domain name
+
+前面提過，`CoreDNS`的任務是將service的domain name轉換成IP，那在k8s中，domain name的格式是怎樣的呢?
+
+**格式**
+```text
+<service-name>.<namespace>.svc.cluster.local
+```
+
+我們用實際例子來測試一下。
+
+**實例: 測試service的domain name**
+
+首先，我們先布置好測試的情境:
+
+  * 需要兩個不同的namespace
+    1. `default`
+    2. `test`
+
+```bash
+kubectl create ns test
+```
+```bash
+kubectl get ns default test
+```
+```text
+NAME      STATUS   AGE
+default   Active   23d
+test      Active   7s
+```
+
+  * 在`default namespace`建立一個pod，並且幫它建立一個service:
+```bash
+kubectl run default-nginx --image nginx --port 80
+kubectl expose pod default-nginx --port 80 --type NodePort --name default-svc
+```
+
+  * 同樣在`default namespace`建立一個pod，不過不用建立service:
+```bash
+kubectl run default-test --image nginx
+```
+
+  * 在`test namespace`建立一個pod，並且幫它建立一個service:
+```bash
+kubectl -n test run test-nginx --image nginx --port 80
+kubectl -n test expose pod test-nginx --port 80 --type NodePort --name test-svc
+```
+
+建好之後，列出目前的資源來整理一下:
+> 共建立了3個pod，2個service:
+![test-env](28-1-test-env.png)
+
+> 兩個service的clusterIP如下:
+
+```bash
+kubectl get svc default-svc && kubectl -n test get svc test-svc 
+```
+```text
+NAME          TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+default-svc   NodePort   10.110.186.57   <none>        80:31415/TCP   32m
+NAME       TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE
+test-svc   NodePort   10.99.2.146   <none>        80:31938/TCP   30m
+```
+
+service | clusterIP 
+--- | ---
+default-svc | 10.110.186.57
+test-svc | 10.99.2.146
+
+> CoreDNS的service:
+```bash
+kubectl get svc -n kube-system
+```
+```text
+NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   23d
+```
+
+接下來，我們來測試一下這service的domain name:
+
+* 進入`default-test`中:
+```bash
+kubectl exec -it default-test -- sh
+```
+
+* 進入Pod後安裝nslookup:
+```bash
+apt update
+apt install -y dnsutils
+```
+
+* 我們來嘗試存取**相同**namespace的service:
+
+```bash
+nslookup default-svc.default.svc.cluster.local
+```
+```text
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+Name:   default-svc.default.svc.cluster.local
+Address: 10.110.186.57
+# 沒錯，這是default-svc的IP!
+```
+* 再來試試存取**不同**namespace的service:
+```bash
+nslookup test-svc.test.svc.cluster.local
+```
+```text
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+Name:   test-svc.test.svc.cluster.local
+Address: 10.99.2.146
+# 沒錯，這是test-svc的IP!
+```
+
+* 我們換成比較簡短的寫法:「只寫service-name」來測試看看:
+```bash
+nslookup default-svc
+```
+```text
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+Name:   default-svc.default.svc.cluster.local
+Address: 10.110.186.57
+# 一樣存取的到default-svc
+```
+
+```bash
+nslookup test-svc
+```
+```text
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+** server can't find test-svc: NXDOMAIN
+# 找不到test-svc!
+```
+
+* 可以發現，跨namespace就不能只寫「service-name」，至少要寫到「<service-name>.<namespace>」:
+```bash
+nslookup test-svc.test
+```
+```text
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+Name:   test-svc.test.svc.cluster.local
+Address: 10.99.2.146
+```
+
+其實從輸出結果來看，就算使用簡寫，DNS仍然會還原出全名來查找，這可以在容器中的`/etc/resolv.conf`中看到:
+
+```bash
+cat /etc/resolv.conf
+```
+```text
+search default.svc.cluster.local svc.cluster.local cluster.local
+nameserver 10.96.0.10
+options ndots:5
+```
+
+> 這裡的`search`就是告訴DNS server，如果找不到domain name，就自動加上這些後綴來查找。
+
+
+
 ## coredns ref
+
 https://weng-albert.medium.com/coredns%E7%B0%A1%E5%96%AE%E9%99%A4%E9%8C%AF-%E8%A7%A3%E6%B1%BA%E4%BD%A0%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E8%88%AC%E5%95%8F%E9%A1%8C-71d255e39548
 
 https://medium.com/k8s%E7%AD%86%E8%A8%98/kubernetes-k8s-service%E4%B9%8B%E9%96%93%E4%BA%92%E7%9B%B8%E6%BA%9D%E9%80%9A-namespace%E5%92%8C%E4%BB%8B%E7%B4%B9kube-dns-b2fff7757900
@@ -267,37 +511,6 @@ https://www.cnblogs.com/liugp/p/16387457.html
 
 https://ithelp.ithome.com.tw/articles/10195786?sc=pt
 
-
-k8s 網路中的DNS server
-
-
-設定檔: /etc/coredns/Corefile，使用conifgMap的方式傳送進coredns的pod中
-kubectl get cm -n kube-system
-  * 解讀設定檔
-
-
-coredns部署後，也會建立一個service讓大家(pod)存取:
-k get svc -n kube-system
-
-kubelet 會負責在pod剛建立時告訴pod DNS server的位置，這樣pod就可以透過DNS server來解析其他pod的IP。
-
-  * 看kubelet的設定檔: var/lib/kubelet/config.yaml
-
-在pod中測試dns:
-
-```bash
-host <svc-name>
-```
-
-可以用全名也可以用簡寫，例如:
-
-<svc-name>.<namespace>.svc.cluster.local
-
-<svc-name>.<namespace>.svc
-
-<svc-name>  但是跨namespace的話，就要用全名
-
-> 這只有svc能用
 
 # ref
 
