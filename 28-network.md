@@ -258,6 +258,16 @@ KUBE-SEP-IDDE442HC73W6UQJ  all  --  anywhere             anywhere             /*
 
 ## CoreDNS
 
+## coredns ref
+https://weng-albert.medium.com/coredns%E7%B0%A1%E5%96%AE%E9%99%A4%E9%8C%AF-%E8%A7%A3%E6%B1%BA%E4%BD%A0%E9%81%87%E5%88%B0%E7%9A%84%E4%B8%80%E8%88%AC%E5%95%8F%E9%A1%8C-71d255e39548
+
+https://medium.com/k8s%E7%AD%86%E8%A8%98/kubernetes-k8s-service%E4%B9%8B%E9%96%93%E4%BA%92%E7%9B%B8%E6%BA%9D%E9%80%9A-namespace%E5%92%8C%E4%BB%8B%E7%B4%B9kube-dns-b2fff7757900
+
+https://www.cnblogs.com/liugp/p/16387457.html
+
+https://ithelp.ithome.com.tw/articles/10195786?sc=pt
+
+
 k8s 網路中的DNS server
 
 
