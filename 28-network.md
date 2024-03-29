@@ -1,12 +1,17 @@
 # network : CNI and CoreDNS
 
-在前面使用kubeadm安裝cluster與介紹service時，我們多多少少都有提到`CNI`，當時給出的解釋是:
+在建立一個網域時，最基本的設定不外乎是以下幾個:
 
-> 建立**虛擬網路**供`cluster`內部溝通使用
+  * IP分配
 
-今天我們就來探討一下到底何謂`CNI`? 它與service的關係是什麼? 相關的設定檔在哪裡?
+  * 路由規則
 
-## What's CNI
+  * DNS
+
+在前面使用kubeadm安裝cluster與介紹service時，我們建立了一個**虛擬網路**供`cluster`內部溝通使用，虛擬網路同樣也需要搞定上面三大設定，
+我們就來探討一下k8s是如何處理這些設定的
+
+## 網路基礎: CNI
 
 `CNI`的全名是`Container Network Interface`，它的目的是搞定cluster中的**網路基本需求**。
 
@@ -19,11 +24,11 @@
 
 要滿足上述需求，cluster中就必須有「基本的」網路配置，例如:
 
-  * pod的IP分配，這個IP必須要是獨立的，並且能與外界溝通
+  * 每個pod要有自己獨立的IP
 
   * 虛擬網路卡設定
 
-如果沒有`CNI`，那麼你就必須自己來處理這些問題，就像是在現實中處理多台電腦的網路連線問題一樣(配置網路卡、規劃網段、手動設定IP)，只不過這裡的「電腦」不是普通的多，一個cluster中的pod可能就有上百、上千個，而且又隨時會刪除或重啟，讓人工處理這樣的網路配置實在是強人所難。
+如果沒有`CNI`，那麼你就必須自己來處理這些問題，就像是在現實中處理多台電腦的網路連線問題一樣(配置網路卡、規劃網段、手動設定IP)，只不過這裡的「電腦」不是普通的多，一個cluster中的pod可能就有上百、上千個，而且又隨時會刪除或重啟，直接人工處理這些配置實在是強人所難。
 
 不過，k8s並沒有提供預設的`CNI`，而是定義出`CNI`「該做甚麼、該如何做」，只要滿足這些規範，人人都可以按照這些規範來開發`CNI`，並且以「插件(**Plugins**)」的形式讓使用者依需求挑選，最終部署在cluster中。
 
@@ -37,18 +42,18 @@
 
   * `cilium`
 
-> CNI是CNCF的一個開源專案，你可以在他們的[github](https://github.com/containernetworking/cni)上找到更多關於CNI的資訊。
+> CNI是CNCF的一個開源專案，可以在他們的[github](https://github.com/containernetworking/cni)上找到更多關於CNI的資訊。
 
 
 ## CNI 與 Service、kube-proxy的關係
 
 目前為止的章節中，我們總共提到三種與網路相關的元件:
 
-  * `CNI` : cluster中的**網路基礎**，注重的是「如何配置pod的基本網路」，例如IP分配、虛擬網路卡設定
+  * `CNI` : cluster中的**網路基礎**，注重的是「**如何配置pod的基本網路**」，例如IP分配、虛擬網路卡設定
 
-  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod，注重的是「如何穩定的存取pod」，例如NodePort、ClusterIP
+  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod，注重的是「**如何穩定的存取pod**」，例如NodePort、ClusterIP
 
-  * `kube-proxy` : 負責處理cluster中的**路由規則**，注重的是「如何轉發流量」，例如iptables、ipvs
+  * `kube-proxy` : 負責處理cluster中的**路由規則**，注重的是「**如何轉發流量**」，例如iptables、ipvs
 
 當一個 Pod 被建立並建立service後，會發生:
 
@@ -57,6 +62,8 @@
 * `Service`: k8s並不會自動的建立service。如果使用者依需求自行幫pod建立`service`後，`kube-apiserver`會為這個service分配一個IP
 
 * `kube-proxy`：隨時的觀察`service`的狀態，當有`service`被建立後，`kube-proxy`會配置相對應的路由規則，讓整個cluster都能夠存取這個`service`。當`service`被刪除後，`kube-proxy`也會刪除相對應的路由規則。
+
+有了以上三者的配合後，「IP分配」、「路由規則」基本上就搞定了。(當然，還有DNS的部分，我們後面會提到)
 
 > 至於建立service的介紹這裡就不再贅述，可以參考之前的[Day06](06-1-svc.md)
 
@@ -161,6 +168,7 @@ cat /etc/cni/net.d/10-canal.conflist | grep -A 3 -i ipam
 > 所以IP的範圍就是從10.5.0.0.1 ~ 10.5.0.0.254
 
 但設定檔的ipam欄位也有可能是這樣:
+
 ```text
       "ipam": {
           "type": "host-local",
@@ -247,7 +255,13 @@ KUBE-SEP-IDDE442HC73W6UQJ  all  --  anywhere             anywhere             /*
 
 ## CoreDNS
 
+> 講完k8s如何實現「IP分配」、「路由規則」，接下來我們來談談「DNS」。
+
+那究竟什麼是DNS?
+
 如果想要使用fackbook的網頁，我們不需要知道fackbook server的IP，而是輸入`www.google.com`就可以了，這是因為`DNS server`幫我們將這個網址轉換成IP。
+
+以下提供一些有關DNS的指令來玩玩看:
 
  * 想知道某個URL的IP: host <URL>
 ```bash
@@ -287,9 +301,13 @@ nameserver 1.1.1.1
 
 在k8s中，也有`DNS server`來完成相同的任務。我們不需要知道service的IP，只要知道service的「domain name」即可存取，而k8s預設的`DNS server`就是`CoreDNS`。
 
-`CoreDNS`是一個用Go語言寫的DNS server，靈活性使它能在多種環境中部署，例如k8s cluster。
+[CoreDNS](https://coredns.io/)是一個用Go語言寫的DNS server，高度的靈活性使它能在多種環境中部署，其中一種就是k8s cluster。
 
-`CoreDNS`以deployment的方式部署在cluster中，會不斷的透過master node來取得service的資訊，並依照這些資訊建立DNS的對應。pod可以透過存取`CoreDNS`的service來取得DNS對應。
+`CoreDNS`以deployment的方式部署在cluster中，會不斷的與master node溝通來取得service的資訊，並依照這些資訊建立DNS的對應。
+
+pod可以透過存取`CoreDNS`的service來取得DNS對應。
+
+底下來探索探索cluster中的`CoreDNS`:
 
   * 安裝完cluster後，可以查看一下`CoreDNS`的狀況:
 
@@ -309,9 +327,6 @@ kubectl get svc -n kube-system
 NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
 kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   23d
 ```
-
-所以，如果有一pod想要存取`CoreDNS`，示意圖如下:
-
 
   * 查看一下`CoreDNS`的設定檔相關訊息:
 
@@ -338,11 +353,12 @@ kubectl describe deploy -n kube-system coredns
 前面提過，`CoreDNS`的任務是將service的domain name轉換成IP，那在k8s中，domain name的格式是怎樣的呢?
 
 **格式**
+
 ```text
 <service-name>.<namespace>.svc.cluster.local
 ```
 
-我們用實際例子來測試一下。
+底下我們用實際例子來測試一下:
 
 **實例: 測試service的domain name**
 
