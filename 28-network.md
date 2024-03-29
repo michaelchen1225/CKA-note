@@ -360,7 +360,6 @@ kubectl describe deploy -n kube-system coredns
 
 底下我們用實際例子來測試一下:
 
-**實例: 測試service的domain name**
 
 首先，我們先布置好測試的情境:
 
@@ -399,9 +398,11 @@ kubectl -n test expose pod test-nginx --port 80 --type NodePort --name test-svc
 
 建好之後，列出目前的資源來整理一下:
 > 共建立了3個pod，2個service:
+
 ![test-env](28-1-test-env.png)
 
-> 兩個service的clusterIP如下:
+
+* 兩個service的clusterIP如下:
 
 ```bash
 kubectl get svc default-svc && kubectl -n test get svc test-svc 
@@ -413,12 +414,8 @@ NAME       TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)        AGE
 test-svc   NodePort   10.99.2.146   <none>        80:31938/TCP   30m
 ```
 
-service | clusterIP 
---- | ---
-default-svc | 10.110.186.57
-test-svc | 10.99.2.146
 
-> CoreDNS的service:
+* CoreDNS的service的IP如下:
 ```bash
 kubectl get svc -n kube-system
 ```
@@ -426,6 +423,14 @@ kubectl get svc -n kube-system
 NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
 kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   23d
 ```
+
+底下將上面三個service的IP以表格整理，方便等會對照:
+
+service | clusterIP 
+--- | ---
+default-svc | 10.110.186.57
+test-svc | 10.99.2.146
+kube-dns | 10.96.0.10
 
 接下來，我們來測試一下這service的domain name:
 
