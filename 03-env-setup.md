@@ -36,10 +36,35 @@
 ### Step 2 : 安裝container runtime
 
 **每台**VM上都需要安裝container runtime，這裡以`containerd`為例:
+
+> 不同版本的安裝步驟可以參考[官方文件](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#option-2-from-apt-get-or-dnf)，這裡以`Ubuntu`為例。
+
+設定好`apt repo`的GPG key:
 ```bash
-sudo apt update
-sudo apt install -y containerd
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+```
+
+加入`containerd`的repo:
+```bash
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+
+安裝`containerd`:
+```bash
+sudo apt-get install containerd.io
 sudo systemctl enable containerd
+```
+安裝後檢查一下是否有正常運作:
+```bash
+systemctl status containerd
 ```
 
 > containerd和docker都是container runtime， 兩者的差異可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
@@ -72,13 +97,14 @@ containerd config default | sudo tee /etc/containerd/config.toml
 ...
 .....(省略)....
 ```
+[參考](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd)
 
 然後，找到`containerd`的啟動腳本，加入參數引用剛剛改過的`config.toml`:
 ```bash
 vim /lib/systemd/system/containerd.service
 ``` 
 
-* 找到[Service]區塊下的`ExecStart`，加入`--config /etc/containerd/config.toml`:
+(有可能不需要，有待測試)* 找到[Service]區塊下的`ExecStart`，加入`--config /etc/containerd/config.toml`:
 ```text
 [Service]
 ExecStart=/usr/bin/containerd --config /etc/containerd/config.toml
@@ -107,11 +133,16 @@ containerd config default | grep SystemdCgroup
 
 安裝以上三個組件的方式如下:
 
+* 看這裡，底下可能要改: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
+
 * 首先，把kubernetes的repo加入到apt的source list中
 ```bash
 sudo apt-get update
 
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+# If the directory `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
+# sudo mkdir -p -m 755 /etc/apt/keyrings
 
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
@@ -147,7 +178,7 @@ sudo swapoff -a # 暫時關閉
 vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
 ```
 
-啟用ip_forward:
+載入必要模組，啟用ip_forward:
 ```bash
 sudo modprobe overlay
 sudo modprobe br_netfilter
@@ -157,6 +188,18 @@ net.bridge.bridge-nf-call-iptables = 1
 net.ipv4.ip_forward = 1
 EOF
 sudo sysctl --system
+```
+
+* 確認模組是否載入成功:
+```bash
+lsmod | grep br_netfilter
+lsmod | grep overlay
+```
+
+* 確認「net.bridge.bridge-nf-call-ip6tables」、「net.bridge.bridge-nf-call-iptables」、「net.ipv4.ip_forward」都是1:
+
+```bash
+sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables net.ipv4.ip_forward
 ```
 
 ### Step 5 : 初始化master node

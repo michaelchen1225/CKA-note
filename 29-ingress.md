@@ -1,5 +1,7 @@
 # ingress
 
+https://kubernetes.io/docs/concepts/services-networking/ingress/
+
 Now, in k8s version 1.20+ we can create an Ingress resource from the imperative way like this:-
 
 Format - kubectl create ingress <ingress-name> --rule="host/path=service:port"
