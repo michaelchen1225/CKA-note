@@ -99,20 +99,8 @@ containerd config default | sudo tee /etc/containerd/config.toml
 ```
 [參考](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd)
 
-然後，找到`containerd`的啟動腳本，加入參數引用剛剛改過的`config.toml`:
-```bash
-vim /lib/systemd/system/containerd.service
-``` 
-
-(有可能不需要，有待測試)* 找到[Service]區塊下的`ExecStart`，加入`--config /etc/containerd/config.toml`:
-```text
-[Service]
-ExecStart=/usr/bin/containerd --config /etc/containerd/config.toml
-```
-
 最後重新啟動`containerd`:
 ```bash
-sudo systemctl daemon-reload
 sudo systemctl restart containerd
 ```
 
@@ -141,9 +129,6 @@ containerd config dump | grep SystemdCgroup
 sudo apt-get update
 
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
-
-# If the directory `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
-# sudo mkdir -p -m 755 /etc/apt/keyrings
 
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 # 如果顯示錯誤"etc/apt/keyrings does not exist"。請先執行"sudo mkdir -p -m 755 /etc/apt/keyrings，再重新curl
@@ -263,10 +248,12 @@ kubectl get nodes
 
 **flannel**
 
+回到master node上，執行以下指令:
+
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
-回到master node上，執行以下指令:
+
 ```bash
 kubectl get nodes -w
 # -w會持續監控node的狀態
@@ -276,18 +263,51 @@ kubectl get nodes -w
 
 **calico**
 
+* 直接部署以下檔案:
 ```bash
 kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/tigera-operator.yaml
 ```
 
+* 由於我們剛才在kubeadm init時將`pod-network-cidr`設為10.244.0.0/16，因此必須先下載下面的檔案，修改後再進行安裝:
+
 ```bash
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/custom-resources.yaml
+wget https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/custom-resources.yaml
+
+vim custom-resources.yaml
 ```
+
+* 修改如下:
+```yaml
+...(省略)...
+...
+spec:
+  # Configures Calico networking
+  calicoNetwork:
+    # Note: The ipPools section cannot be modified post-install.
+    ipPools:
+    - blockSize: 26
+      cidr: 10.244.0.0/16
+...
+...(省略)...
+```
+
+* 修改後部署calico:
+```bash
+kubectl apply -f custom-resources.yaml
+```
+
+* 等待一下讓calico的相關pod狀態變成`Running`:
+
 ```bash
 watch kubectl get pods -n calico-system
 ```
 
-同樣等待一下讓`node`的狀態變成`Ready`
+* 這時候再看看node的狀態，直到變成`Ready`，就代表`cluster`已經建置完成了:
+
+```bash
+kubectl get node -w
+```
+
 
 ### 加入新的worker node
 
@@ -341,29 +361,42 @@ scp master:/etc/kubernetes/admin.conf ~/.kube/config
 
 * 列出壞掉的容器:
 ```bash
-crictl ps -a
+sudo crictl ps -a
+```
+
+>  如果上述指令出現以下以下錯誤:
+```text
+WARN[0000] runtime connect using default endpoints: [unix:///var/run/dockershim.sock unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]. As the default settings are now deprecated, you should set the endpoint instead. 
+ERRO[0000] unable to determine runtime API version: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix /var/run/dockershim.sock: connect: no such file or directory" 
+WARN[0000] image connect using default endpoints: [unix:///var/run/dockershim.sock unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]. As the default settings are now deprecated, you should set the endpoint instead. 
+ERRO[0000] unable to determine image API version: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix /var/run/dockershim.sock: connect: no such file or directory" 
+```
+
+> 請用以下指令修正:
+```bash
+sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```
 
 * 查看容器的log:
 ```bash
-crictl logs <container-id>
+sudo crictl logs <container-id>
 ```
 
 如果你覺得完全搞砸了、沒救了想直接砍掉重來，可以使用`kubeadm reset`:
 ```bash
-kubeadm reset
+sudo kubeadm reset
 ```
 接著清除所有相關的檔案:
 ```bash
-rm -rf /etc/kubernetes/
-rm -rf .kube/
-rm -rf /etc/cni/
+sudo rm -rf /etc/kubernetes/
+sudo rm -rf .kube/
+sudo rm -rf /etc/cni/
 ```
 
 最後，解除安裝和清除所有kubernetes的套件:
 ```bash
-apt-get purge kubeadm kubectl kubelet kubernetes-cni kube* 
-apt-get autoremove
+sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube* 
+sudo apt-get autoremove
 ```
 
 
