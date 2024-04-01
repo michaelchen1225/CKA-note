@@ -117,7 +117,7 @@ sudo systemctl restart containerd
 
 最終檢查一下是否有將「SystemdCgroup=ture」設定成功:
 ```bash
-containerd config default | grep SystemdCgroup
+containerd config dump | grep SystemdCgroup
 # SystemdCgroup = true
 ```
 **提醒**
