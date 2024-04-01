@@ -112,6 +112,7 @@ ExecStart=/usr/bin/containerd --config /etc/containerd/config.toml
 
 最後重新啟動`containerd`:
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl restart containerd
 ```
 
@@ -153,8 +154,8 @@ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 
 * 查看目前可用的`kubeadm`版本
 ```bash
-apt update
-apt-cache madison kubeadm
+sudo apt update
+sudo apt-cache madison kubeadm
 # 這裡會列出許多版本，以下範例選用1.29.1-1.1
 ```
 
@@ -176,7 +177,7 @@ kubeadm version
 在預設上，如果swap沒有被關閉，可能會導致`kubelet`無法正常運作。所以需要先關閉swap:
 ```bash
 sudo swapoff -a # 暫時關閉
-vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
+sudo vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
 ```
 
 載入必要模組，啟用ip_forward:
