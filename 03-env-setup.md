@@ -14,7 +14,7 @@
 
 使用`kubeadm`進行建置`cluster`的步驟如下:
 
-  1. 準備環境
+  1. 準備環境 
   2. 安裝container runtime
   3. 安裝必要組件: kubelet、kubeadm、kubectl
   4. 關閉swap並啟用ip_forward
@@ -114,7 +114,6 @@ containerd config default | sudo tee /etc/containerd/config.toml
 ...
 .....(省略)....
 ```
-[參考](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd)
 
 最後重新啟動`containerd`:
 ```bash
@@ -211,7 +210,7 @@ sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables ne
 初始化時，記得指定apiserver的IP:
 > 以下操作僅於master node 上操作。
 ```bash
-sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock 
+sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16
 ```
 
 > pod IP範圍(`--pod-network-cidr`)的相關含意將會在[Day 28](28-network.md)中提到
@@ -246,6 +245,9 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 > 關於`kubeconfig`的介紹將會在後面的章節中提到。這裡可以先簡單理解為「管理員對`cluster`的操作設定檔」。
 
 ### Step 6 : 加入worker node
+
+> 如果你安裝的是`single node cluster`，請直接跳到「*Step 7 : 安裝Pod network*」。
+
 在master node上初始化成功的輸出中，最下方有提示該如何加入worker node，我們就直接依照指示操作即可:
 > 以下操作僅於worker node上操作。
 ```bash
@@ -327,7 +329,7 @@ kubectl get node -w
 
 **提醒!**
 
-如果你建置的是`single node cluster`，請繼續看「補充4】」。
+如果你建置的是`single node cluster`，請繼續看「補充4」。
 
 ### 加入新的worker node
 
@@ -404,13 +406,36 @@ sudo crictl logs <container-id>
 
 ### 補充4: Single node cluster
 
-在預設中，k8s為了讓master node與worker node各司其職，所以在master node上有「不能運行pod」的限制。
+在預設中，k8s為了讓master node與worker node各司其職，所以在master node上有「不能運行pod」的限制，這種限制稱為「taint」。
 
-但是single node cluster的情況下，master node也是worker node，所以解除上述限制:
+> 關於taint的介紹將會在後面的章節中提到。
+
+但是single node cluster的情況下，master node也是worker node，所以需要移除taint:
+
+* 先找到taint的名稱:
 
 ```bash
-kubectl taint nodes --all node-role.kubernetes.io/master-
+kubectl describe node | grep -i taint
 ```
+
+```bash
+# 輸出如下:
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+```
+
+* 移除taint:
+```bash
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+```
+
+這樣就完成了，來部署一個簡單的nginx pod來測試一下:
+
+```bash
+kubectl run nginx --image=nginx
+kubectl get pods -w
+```
+
+看到pod的狀態變成`Running`，就代表single node cluster建置完成了。
 
 
 ### 補充5: 心灰意冷，想重新來過
@@ -432,6 +457,8 @@ sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*
 sudo apt-get autoremove
 ```
 
+> 不過建議還是先試著用除錯的方式來解決問題，或是查找相關資料，不要放棄!
+
 
 ## 今日小節
 今天提供了兩種方式來建置練習環境。如果只是想練習一些基本操作，那playground應該就足夠了。但如果是練習多節點的操作，或想更全面的了解`cluster`，那麼使用`kubeadm`來建置`cluster`對於初學者來說是一個不錯的選擇。(補充: 之所以說初學者，是因為kubeadm還是相對簡單，如果有興趣，可以上網搜尋"Kubernetes The Hard Way ")
@@ -449,4 +476,6 @@ sudo apt-get autoremove
 
 
 * [Quickstart for Calico on Kubernetes](https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart)
+
+* [containerd cgroup setup](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd)
 
