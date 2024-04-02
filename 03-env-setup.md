@@ -12,6 +12,16 @@
 
 不過使用`playground`的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的`cluster`，可以使用`kubeadm`進行建置。`kubeadm`是一個專門用來部署`Kubernetes`的工具，能夠快速的建立一個`cluster`，並且可以直接在本地端進行操作。以下將以virtualbox為例，介紹如何使用`kubeadm`進行建置。
 
+使用`kubeadm`進行建置`cluster`的步驟如下:
+
+  1. 準備環境
+  2. 安裝container runtime
+  3. 安裝必要組件: kubelet、kubeadm、kubectl
+  4. 關閉swap並啟用ip_forward
+  5. 初始化master node
+  6. 加入worker node
+  7. 安裝Pod network
+
 ### Step 1 : 準備環境
 
 首先需要安裝`virtualbox`，並建立至少兩台的VM，一台作為`master node`，其他的作為`worker node`。需注意的是，每台VM只少需要:
@@ -32,6 +42,13 @@
   * [在virtualbox上安裝Ubuntu](https://karenkaods.medium.com/%E4%B8%89%E6%AD%A5%E9%A9%9F%E5%9C%A8-windows-%E9%9B%BB%E8%85%A6%E4%B8%8A%E5%AE%89%E8%A3%9D-vitrualbox-%E5%95%9F%E5%8B%95-ubuntu-%E8%99%9B%E6%93%AC%E6%A9%9F-f45619d3c088)
   
   * [設定Ubuntu IP](https://sam.liho.tw/2022/09/29/ubuntu-22-04-%E6%8C%87%E4%BB%A4-cli-%E8%A8%AD%E5%AE%9A%E7%B6%B2%E8%B7%AF%E7%AD%86%E8%A8%98/)
+
+**補充**
+
+其實只用一台VM即可建立`cluster`，這樣的方式稱為`single node cluster`。
+
+如果想要建立single node cluster，同樣按照下面的步驟進行即可，不過要注意做完「Step 5」後，不須操作「*Step 6 : 加入worker node*」，直接跳到「*Step 7 : 安裝Pod network*」即可。
+
 
 ### Step 2 : 安裝container runtime
 
@@ -113,7 +130,7 @@ containerd config dump | grep SystemdCgroup
 
 請確保上述步驟有設定成功，否則cluster建立後重要元件會不斷重啟而無法使用!
 
-### Step 3 : 安裝必要組件
+### Step 3 : 安裝必要組件: kubelet、kubeadm、kubectl
 
 在每台VM上，需要以下三個組件:
   * `kubelet`: [上一個章節](02.md)有提到，它是「小船的船長」
@@ -194,7 +211,7 @@ sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables ne
 初始化時，記得指定apiserver的IP:
 > 以下操作僅於master node 上操作。
 ```bash
-sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16
+sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock 
 ```
 
 > pod IP範圍(`--pod-network-cidr`)的相關含意將會在[Day 28](28-network.md)中提到
@@ -308,6 +325,9 @@ watch kubectl get pods -n calico-system
 kubectl get node -w
 ```
 
+**提醒!**
+
+如果你建置的是`single node cluster`，請繼續看「補充4】」。
 
 ### 加入新的worker node
 
@@ -381,6 +401,19 @@ sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```bash
 sudo crictl logs <container-id>
 ```
+
+### 補充4: Single node cluster
+
+在預設中，k8s為了讓master node與worker node各司其職，所以在master node上有「不能運行pod」的限制。
+
+但是single node cluster的情況下，master node也是worker node，所以解除上述限制:
+
+```bash
+kubectl taint nodes --all node-role.kubernetes.io/master-
+```
+
+
+### 補充5: 心灰意冷，想重新來過
 
 如果你覺得完全搞砸了、沒救了想直接砍掉重來，可以使用`kubeadm reset`:
 ```bash
