@@ -23,51 +23,195 @@
 
 而`Ingress controller`有很多種，可以參考[官方文件](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/#additional-controllers)
 
+### 安裝Ingress controller
+
+https://kubernetes.github.io/ingress-nginx/deploy/#quick-start
+
 ## Ingress 實作
 
 底下將透過實作來說明`Ingress`的設定方式，本次實作的目的如下:
 
 
+建立兩個nginx pod，分別為`nginx-1`與`nginx-2`，並且透過`Ingress`來將流量分散到這兩個pod上。
 
- * 
-https://kubernetes.io/docs/concepts/services-networking/ingress/
+  * 首先，我們先建立兩個nginx pod:
+```bash
+kubectl run nginx-1 --image=nginx --port=80
+kubectl run nginx-2 --image=nginx --port=80
+kubectl expose pod nginx-1 --port=80 --name=nginx-1-svc
+kubectl expose pod nginx-2 --port=80 --name=nginx-2-svc
+```
 
-Now, in k8s version 1.20+ we can create an Ingress resource from the imperative way like this:-
+  * 然橫自訂一下index.html，這樣測試`Ingress`時比較好看出效果:
+```bash
+echo "Hello from nginx-1" > nginx-1.html
+echo "Hello from nginx-2" > nginx-2.html
+kubectl cp nginx-1.html nginx-1:/usr/share/nginx/html/index.html
+kubectl cp nginx-2.html nginx-2:/usr/share/nginx/html/index.html
+```
 
-Format - kubectl create ingress <ingress-name> --rule="host/path=service:port"
+  * 查看一下pod的IP，等一下檢查`Ingress`的狀態時會用到:
+```bash
+kubectl get po nginx-1 nginx-2 -o wide
+```
+```bash
+# 輸出如下
+NAME      READY   STATUS    RESTARTS   AGE     IP             NODE     NOMINATED NODE   READINESS GATES
+nginx-1   1/1     Running   0          9m46s   192.168.1.9    node01   <none>           <none>
+nginx-2   1/1     Running   0          9m46s   192.168.1.10   node01   <none>           <none>
+```
 
-Example - kubectl create ingress ingress-test --rule="wear.my-online-store.com/wear*=wear-service:80"
+  * 接著，我們建立`Ingress`:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /nginx-1
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-1-svc
+            port:
+              number: 80
+      - path: /nginx-2
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-2-svc
+            port: 
+              number: 80
+```
+> 這裡關於「nginx.ingress.kubernetes.io/rewrite-target: /」這個annotation的說明，暫且先賣個關子，等一下會說明
 
-Find more information and examples in the below reference link:-
+  * 部署`Ingress`後查看一下情況:
+```bash
+kubectl apply -f ingress-nginx.yaml
+kubectl describe ingress ingress-nginx
+```
+```bash
+# 輸出如下
+Name:             ingress-nginx
+Labels:           <none>
+Namespace:        default
+Address:          
+Ingress Class:    nginx
+Default backend:  <default>
+Rules:
+  Host        Path  Backends
+  ----        ----  --------
+  *           
+              /nginx-1   nginx-1-svc:80 (192.168.1.9:80) # 檢查IP是否符合預期?
+              /nginx-2   nginx-2-svc:80 (192.168.1.10:80)
+Annotations:  nginx.ingress.kubernetes.io/rewrite-target: /
+Events:
+  Type    Reason  Age                  From                      Message
+  ----    ------  ----                 ----                      -------
+  Normal  Sync    13s (x2 over 4m19s)  nginx-ingress-controller  Scheduled for sync
+```
 
-https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#-em-ingress-em-
+  * 如果還記得上面的圖片，我們必須透過`Ingress controller`的service來存取`Ingress`，所以我們先來查看一下:
+```bash
+kubectl get svc -n ingress-nginx
+```
+```bash
+NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             LoadBalancer   10.103.189.113   <pending>     80:31098/TCP,443:32654/TCP   27m
+ingress-nginx-controller-admission   ClusterIP      10.98.28.248     <none>        443/TCP                      27m
+```
+> 由於沒有設定SSL，所以我們走的是`80` port，其對應的nodePort為`31098`
 
-References:-
+  * 接著我們用curl來測試一下:
+```bash
+curl localhost:31098/nginx-1 && curl localhost:31098/nginx-2
+```
+```bash
+# 成功的輸出如下:
+Hello from nginx-1
+Hello from nginx-2
+```
 
-https://kubernetes.io/docs/concepts/services-networking/ingress
+  * 以上的存取紀錄也可以在各自service的log中看到:
+```bash
+kubectl logs svc/nginx-1-svc | grep "GET"
+```
+```bash
+# 輸出如下
+192.168.1.6 - - [03/Apr/2024:11:38:06 +0000] "GET / HTTP/1.1" 200 19 "-" "curl/7.68.0" "192.168.0.0"
+```
 
-https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
+以上就是相當簡單的`Ingress`測試，等下我們再來試試不同的`Ingress`功能。不過在此之前，先來填坑: 到底「nginx.ingress.kubernetes.io/rewrite-target: /」這個annotation是什麼意思?
 
-https://tsunghsien.gitbooks.io/kubenetes/content/ingresspei-zhi.html
+  * 我們直接拿掉這個annotation，然後再次部署`Ingress`:
+```bash
+vim ingress-nginx.yaml
+```
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  # annotations:
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+...
+...(省略)...
+```
 
+  * 部署後我們再用curl來測試一下:
+```bash
+curl localhost:31098/nginx-1 && curl localhost:31098/nginx-2
+```
 
-## Ingress controller :
-https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/learn/lecture/21738990#overview
+  * 結果系統丟回來「404 Not Found」:
+```text
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.25.4</center>
+</body>
+</html>
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.25.4</center>
+</body>
+</html>
+```
 
-## Ingress - Annotations and rewrite-target
+  * 我們找找service的log，看看是什麼原因:
+```bash
+kubectl logs svc/nginx-1-svc | grep "error"
+```
+```bash
+# 輸出如下
+2024/04/03 11:47:38 [error] 28#28: *2 open() "/usr/share/nginx/html/nginx-1" failed (2: No such file or directory), client: 192.168.1.6, server: localhost, request: "GET /nginx-1 HTTP/1.1", host: "localhost:31098"
+```
 
-解釋:
-https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/learn/lecture/16827080#overview
+**解釋**
 
+當我們沒有加上annotation時，curl後面的URL會被轉為:
 
-controlplane ~ ➜  k logs -n critical-space services/pay-service 
- * Serving Flask app 'app' (lazy loading)
- * Environment: production
-   WARNING: This is a development server. Do not use it in a production deployment.
-   Use a production WSGI server instead.
- * Debug mode: off
- * Running on all addresses.
-   WARNING: This is a development server. Do not use it in a production deployment.
- * Running on http://10.244.0.11:8080/ (Press CTRL+C to quit)
-10.244.0.9 - - [27/Mar/2024 06:00:55] "GET /pay HTTP/1.1" 404 - # 沒加annotations
-10.244.0.9 - - [27/Mar/2024 06:03:45] "GET / HTTP/1.1" 200 - # 加了annotations
+  (使用者輸入 --> 經ingress轉到的service --> service的pod)
+
+* `localhost:31098/nginx-1` -> `nginx-1-svc:80/nginx-1` -> 192.168.1.9:80/nginx-1
+* `localhost:31098/nginx-2` -> `nginx-2-svc:80/nginx-2` -> 192.168.1.10:80/nginx-2
+
+這樣nginx就會去找`/usr/share/nginx/html/nginx-1`這個檔案，但是這個檔案並不存在，所以才會出現`404 Not Found`的錯誤。
+
+* 因為ingress還沒改，我們用kubectl exec來驗證一下上面的說法(用nginx-1呼叫nginx-2):
+
+```bash
+# 嘗試呼叫nginx-2-svc:
+k exec -it nginx-1 -- curl nginx-2-svc:80/index.html
+k exec -it nginx-1 -- curl nginx-2-svc:80/nginx-2
+```bash
+# 輸出如下
+
