@@ -6,7 +6,7 @@
 
 這樣「各個service的統一入口」，就是`Ingress`。
 
-除此之外，`Ingress`還有以下幾個功能:
+除此之外，`Ingress`還有以下幾個功能可讓我們選擇:
 
  * **load balancing** : 將流量分散到不同的service上
 
@@ -21,11 +21,74 @@
 
 `Ingress`制定的規則如果沒有`Ingress controller`來執行與控制，其實有跟沒有一樣(規則不會生效)。為了達成`Ingress`的目的，`Ingress controller`會透過kube-apiserver來監聽service與pod的變化，這樣才能根據`Ingress`的規則來做流量的轉發。
 
-而`Ingress controller`有很多種，可以參考[官方文件](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/#additional-controllers)
+> 因為需要與kube-apiserver溝通，所以在安裝時通常會設定RBAC (等下安裝過程的輸出中會看到相關的訊息)
+
+而`Ingress controller`有很多種，可以參考[官方文件](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/#additional-controllers)的列表進行選擇。
+
+我們可以依照不同需求在cluster中同時部署多種`Ingress controller`，並在設定`Ingress`時透過`Ingress class`來指定controller。
 
 ### 安裝Ingress controller
 
 https://kubernetes.github.io/ingress-nginx/deploy/#quick-start
+> 以下選用「[Ingress-Nginx Controller](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)」作為範例
+
+* 安裝Ingress-Nginx Controller:
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+```
+
+* 確認一下是否有成功安裝:
+```bash
+kubectl get pods --namespace=ingress-nginx
+```
+```bash
+# 應該要看到以下的輸出:
+NAME                                        READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-httbh        0/1     Completed   0          17m
+ingress-nginx-admission-patch-ztmmr         0/1     Completed   1          17m
+ingress-nginx-controller-7dcdbcff84-wl484   1/1     Running     0          17m
+```
+
+> 重點是`ingress-nginx-controller`這個pod有跑起來就好。
+
+* 最後，將「default ingress class」設定為`nginx`:
+```bash
+kubectl edit ingressclass nginx
+```
+```yaml
+# 修改如下:
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true" # 加入這個annotation
+...
+...(省略)...
+```
+
+> ingress class的概念有點像是storage class，用來區分不同的Ingress controller，這樣我們就能在Ingress中指定要使用哪一個controller。
+
+**補充: 關於ingress-nginx-admission**
+
+上面的輸出中那兩個completed的pod，他們的任務是建立ingress-admission，當任務完成當
+
+admission是nginx-ingress-controller的一個webhook插件，每當有新的ingress被創建或更新時，會交由admission會檢查ingress的規則是否符合規則，整個流程如下
+
+`ingress創建or更新`  --> `admission檢查`  -->  `符合規則`  -->  `controller執行`
+
+* admission是以service的方式存在於cluster中，我們可以從下面指令的輸出中看到admission與contrller的關係:
+
+```bash
+kubectl describe svc -n ingress-nginx ingress-nginx-controller-admission | grep -i endpoint
+# output: Endpoints:         192.168.1.6:8443
+```
+```bash
+kubectl get po -n ingress-nginx ingress-nginx-controller-7dcdbcff84-wl484 -o wide | awk '{print $6}' 
+# output:
+# IP
+# 192.168.1.6
+```
+> 其他關於admission與整個ingress-nginx-controller的運作原理，可參考[官方文件](https://kubernetes.github.io/ingress-nginx/how-it-works/)
 
 ## Ingress 實作
 
@@ -63,6 +126,7 @@ nginx-2   1/1     Running   0          9m46s   192.168.1.10   node01   <none>   
 
   * 接著，我們建立`Ingress`:
 ```yaml
+# 底下關於「rewrite-target: /」這個annotation的意思，暫且先賣個關子，等一下會以實作來說明。
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -88,7 +152,11 @@ spec:
             port: 
               number: 80
 ```
-> 這裡關於「nginx.ingress.kubernetes.io/rewrite-target: /」這個annotation的說明，暫且先賣個關子，等一下會說明
+
+> 我們也可以透過kubectl來建立相同的`Ingress`:
+```bash
+kubectl create ingress ingress-nginx --rule='nginx-1=/nginx-1:80' --rule='nginx-2=/nginx-2:80'
+```
 
   * 部署`Ingress`後查看一下情況:
 ```bash
