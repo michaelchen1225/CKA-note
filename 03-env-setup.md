@@ -47,7 +47,7 @@
 
 其實只用一台VM即可建立`cluster`，這樣的方式稱為`single node cluster`。
 
-如果想要建立single node cluster，同樣按照下面的步驟進行即可，不過要注意做完「Step 5」後，不須操作「*Step 6 : 加入worker node*」，直接跳到「*Step 7 : 安裝Pod network*」即可。
+如果你想要建立single node cluster，同樣按照下面的步驟進行建置，不過要注意做完「Step 5」後，**不須操作**「*Step 6 : 加入worker node*」，直接跳到「*Step 7 : 安裝Pod network*」，最後記得看「補充4」。
 
 
 ### Step 2 : 安裝container runtime
@@ -185,6 +185,7 @@ sudo vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
 ```bash
 sudo modprobe overlay
 sudo modprobe br_netfilter
+sudo echo -e  'overlay/nbr_netfilter' > /etc/modules-load.d/containerd.conf
 sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
@@ -329,7 +330,7 @@ kubectl get node -w
 
 **提醒!**
 
-如果你建置的是`single node cluster`，請繼續看「補充4」。
+> 如果你建置的是`single node cluster`，請繼續看「補充4」。
 
 ### 加入新的worker node
 
@@ -370,7 +371,9 @@ Linux的bash shell有一個很方便的功能，就是當你輸入指令時，�
 
 ### 補充2: 在cluster的worker node使用kubectl
 
-假如你今天都沒有做任何設定，直接在`worker node`上執行`kubectl`指令，會發現它是無法執行的。這是因為`kubectl`的設定檔是在`master node`上，也就是`/etc/kubernetes/admin.conf`，所以必須將`/etc/kubernetes/admin.conf`複製到`worker node`上的`$HOME/.kube/config`(如同我們最初對master node所做的一樣)，才可以使用`kubectl`指令。在`worker node`上執行以下操作:
+假如你今天都沒有做任何設定，直接在`worker node`上執行`kubectl`指令，會發現它是無法執行的。這是因為`kubectl`的設定檔是在`master node`上，也就是`/etc/kubernetes/admin.conf`，所以必須將`/etc/kubernetes/admin.conf`複製到`worker node`上的`$HOME/.kube/config`(如同我們最初對master node所做的一樣)，才可以使用`kubectl`指令。
+
+> 在`worker node`上執行以下操作:
 
 ```bash
 mkdir -p $HOME/.kube
@@ -394,7 +397,7 @@ WARN[0000] image connect using default endpoints: [unix:///var/run/dockershim.so
 ERRO[0000] unable to determine image API version: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial unix /var/run/dockershim.sock: connect: no such file or directory" 
 ```
 
-> 請用以下指令修正:
+> 使用以下指令修正:
 ```bash
 sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```
@@ -444,6 +447,7 @@ kubectl get pods -w
 ```bash
 sudo kubeadm reset
 ```
+
 接著清除所有相關的檔案:
 ```bash
 sudo rm -rf /etc/kubernetes/
@@ -460,7 +464,8 @@ sudo apt-get autoremove
 > 不過建議還是先試著用除錯的方式來解決問題，或是查找相關資料，不要放棄!
 
 
-## 今日小節
+## 今日小結
+
 今天提供了兩種方式來建置練習環境。如果只是想練習一些基本操作，那playground應該就足夠了。但如果是練習多節點的操作，或想更全面的了解`cluster`，那麼使用`kubeadm`來建置`cluster`對於初學者來說是一個不錯的選擇。(補充: 之所以說初學者，是因為kubeadm還是相對簡單，如果有興趣，可以上網搜尋"Kubernetes The Hard Way ")
 
 ## 參考資料
