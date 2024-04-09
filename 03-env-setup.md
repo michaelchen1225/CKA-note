@@ -185,7 +185,7 @@ sudo vim /etc/fstab # 若想要永久關閉，可以將swap的那一行註解掉
 ```bash
 sudo modprobe overlay
 sudo modprobe br_netfilter
-sudo echo -e  'overlay/nbr_netfilter' > /etc/modules-load.d/containerd.conf
+sudo echo -e  'overlay\nbr_netfilter' | sudo tee /etc/modules-load.d/containerd.conf # 待確認，不一定每台機器都有containerd.conf
 sudo tee /etc/sysctl.d/kubernetes.conf<<EOF
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
