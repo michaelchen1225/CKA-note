@@ -1,10 +1,18 @@
 # *Day02 Basic Concept* : `Kubernetes`的架構與組件
 
+> 底下我們會嘗試用一個船隊的比喻，來解釋`Kubernetes`的架構與組件。
 
-讓我們從Kubernetes最基本的**運行單位**談起---`Pod` :
+讓我們從Kubernetes最基本的**運行單位**談起，也就是`Pod` :
+
    * 我們常聽到的`容器`(container)，就是運行在”`Pod`”當中。
    * 一個`Pod`能跑多個容器，但一般情況都只會跑一個容器。
    * `Pod`被產生時會賦予一個虛擬IP，用來與其他`Pod`溝通。
+
+我們可以用以下圖片來了解pod與container的關係:
+
+![pod&container](02-1-pod-and-container.png)
+
+> 如果將cluster想像成一個船隊，那麼Pod就是船上的貨櫃，而容器就是貨櫃裡面的貨物。
 
 那麼這些Pod又是如何被K8s管理呢? 再回答這個問題之前，我們得先了解K8s的基本架構，也就是`cluster`。
 
@@ -13,7 +21,8 @@
 
 對`K8s cluster`來說，這些`Node`的功能如下 :
    * 一個`Node`代表一台伺服器(不論是實體還是虛擬的)，負責運行`Pod`。
-   * 如果`cluster`想像成一個船隊，那麼其中負責管理、發號施令的主船，就稱為`Control Plane (Master Node)`，負責接收主船命令並執行的小船，就稱為`Worker Node`。
+
+> 如果`cluster`想像成一個船隊，那麼其中負責管理、發號施令的主船，就稱為`Control Plane (Master Node)`，負責接收主船命令並執行的小船，就稱為`Worker Node`。
 
 ### Control Plane(Master Node)
 `Control Plane`身為整個船隊(也就是整個cluster) 的*總指揮*，也可以看成是一個特殊的Node。它負責管理、指派任務給其他的Node，並隨時監控整個cluster的狀況，是一個非常重要的元件。
@@ -52,8 +61,10 @@
 
 以上就是關於Node以及其組件的大致介紹。如果還是覺得有些混亂的話，這裡我們再次用船隊的比喻總結一下:
 
-> 如果想像整個`cluster`是一個船隊，那麼`Node`就是船、`Pod`就是船上的貨物。
+> 如果想像整個`cluster`是一個船隊，那麼`Node`就是船、`Pod`就是船上的貨櫃(裡面裝著貨物`container`)。
+
 > 而在船隊中擔任總指揮的主船，就是`Control Plan`(Master Node)。不同於其他普通的Node(`Worker Node`)，它另外擁有這四個元件 : **kube-apiserver**、**etcd**、**kube-scheduler**、**kube-controller-manager**。
+
 > 其餘的普通小船(`Worker Node`)上，則擁有這三個元件: **kubelet**、**kube-proxy**、**Container Runtime**。
 
 這裡提供一張圖示:
