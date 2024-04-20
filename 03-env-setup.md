@@ -138,8 +138,6 @@ containerd config dump | grep SystemdCgroup
 
 安裝以上三個組件的方式如下:
 
-* 看這裡，底下可能要改: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
-
 * 首先，把kubernetes的repo加入到apt的source list中
 ```bash
 sudo apt-get update
