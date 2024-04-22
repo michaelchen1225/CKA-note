@@ -55,6 +55,7 @@ crictl ps -a
   * containerd: `/var/log/pods/<container-name>/`xx.log
 
 **補充**
+
 `k8s`中`master node`元件的`port`對應如下:
   * `kube-apiserver`: 6443 
   * `etcd`: 2379-2380
@@ -62,7 +63,7 @@ crictl ps -a
   * `kube-controller-manager`: 10257
   * `kubelet`: 10250
 
-稍微記一下，在查看log的時候會更快地找到問題點，例如今天`kube-apiserver`其中一條log長這樣:
+稍微記一下上面的port，在查看log的時候會更快地找到問題點，例如今天`kube-apiserver`其中一條log長這樣:
 ```text
 2024-03-13T12:41:01.395950398Z stderr F W0313 12:41:01.395821       1 logging.go:59] [core] [Channel #198 SubChannel #199] grpc: addrConn.createTransport failed to connect to {Addr: "127.0.0.1:2379", ServerName: "127.0.0.1:2379", }. Err: connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:2379: connect: connection refused"
 ```

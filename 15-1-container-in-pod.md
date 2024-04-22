@@ -2,7 +2,7 @@
 
 在前一章中，我們使用`command`和`args`來設置`pod`在正式運行的前置作業。當前置作業的複雜姓增加時，例如要**同時**啟動`sidecar`容器，或是要在`pod`**啟動前**先執行較複雜的初始化工作，這時候我們可以考慮用以下兩種手段來實現：
   
-  1. **Multi Container Pod**
+  1. **Multi Containers Pod**
   2. **Init Containers**
 
 **補充**

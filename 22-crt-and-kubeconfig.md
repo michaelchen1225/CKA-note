@@ -1,4 +1,4 @@
-#　Certificate and Kubeconfig
+# Certificate and Kubeconfig
 
 在上一個章節中，我們了解到:
 > 為了確保通訊安全，`cluster`中的通訊主體需要有自己的`cert`和`key`，而整個`cluster`會有一個`CA`來簽發這些`cert`。
