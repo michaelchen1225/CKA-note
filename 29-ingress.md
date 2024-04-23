@@ -2,7 +2,7 @@
 
 建立service後，我們就可以透過`ClusterIP`、`NodePort`、`LoadBalancer`等方式來存取`Pod`。以下為一個簡單的例子:
 
-* 目前總共有四個deployments:
+* 目前總共有四個deployments，總共負責兩種業務: watch與buy
   1. `watch-photo`: 可以觀賞圖片
   2. `watch-video`: 可以觀賞影片
   3. `buy-clothes`: 可以購買衣服
@@ -218,7 +218,7 @@ kubectl create ingress ingress-watch --rule='/watch-photo=watch-photo-svc:80' --
   * 部署`Ingress`後查看一下情況:
 ```bash
 kubectl apply -f ingress-watch.yaml
-kubectl describe ingress ingress-nginx
+kubectl describe ingress ingress-watch
 ```
 ```bash
 # 輸出如下
@@ -251,11 +251,12 @@ NAME                                 TYPE           CLUSTER-IP       EXTERNAL-IP
 ingress-nginx-controller             LoadBalancer   10.109.140.197   <pending>     80:31001/TCP,443:31359/TCP   13m
 ingress-nginx-controller-admission   ClusterIP      10.109.253.24    <none>        443/TCP                      13m
 ```
-> 由於沒有設定SSL，所以我們走的是`80` port，其對應的nodePort為`31001`
+> 由於沒有設定SSL，所以我們走的是該service的`80` port(http)，其對應的nodePort為`31001`(這個port是隨機的，你的情況可能會不同)
 
   * 接著我們用curl來測試一下:
 ```bash
-curl localhost:31001/watch-photo && curl localhost:31001/watch-video
+# 要記得把port改成你的nodePort
+curl http://localhost:31001/watch-photo && curl http://localhost:31001/watch-video
 ```
 ```bash
 # 成功的輸出如下:
@@ -263,7 +264,7 @@ Photo from watch-photo
 Video from watch-video
 ```
 
-  * 以上的存取紀錄也可以在各自service的log中看到:
+  * 以上的存取紀錄也可以在各自service的log中看到，例如:
 ```bash
 kubectl logs svc/watch-video-svc | grep "GET"
 ```
@@ -274,9 +275,11 @@ kubectl logs svc/watch-video-svc | grep "GET"
 
 以上就是相當簡單的`Ingress`測試，等下我們再來試試不同的`Ingress`功能。不過在此之前，先來填坑: 到底「nginx.ingress.kubernetes.io/rewrite-target: /」這個annotation是什麼意思?
 
-  * 我們直接拿掉這個annotation，然後再次部署`Ingress`:
+### rewrite-target
+
+  * 我們直接註解掉這個annotation，然後再次部署`Ingress`:
 ```bash
-vim ingress-nginx.yaml
+vim ingress-watch.yaml
 ```
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -291,7 +294,8 @@ metadata:
 
   * 部署後我們再用curl來測試一下:
 ```bash
-curl localhost:31098/nginx-1 && curl localhost:31098/nginx-2
+kubectl apply -f ingress-watch.yaml
+curl http://localhost:31098/watch-photo && curl http://localhost:31098/watch-video
 ```
 
   * 結果系統丟回來「404 Not Found」:
@@ -314,33 +318,77 @@ curl localhost:31098/nginx-1 && curl localhost:31098/nginx-2
 
   * 我們找找service的log，看看是什麼原因:
 ```bash
-kubectl logs svc/nginx-1-svc | grep "error"
+kubectl logs svc/watch-photo-svc | grep "error"
+```
+```text
+# 輸出如下
+2024/04/23 01:32:22 [error] 28#28: *2 open() "/usr/share/nginx/html/watch-photo" failed (2: No such file or directory), client: 192.168.1.6, server: localhost, request: "GET /watch-photo HTTP/1.1", host: "localhost:32103"
+```
+
+> 上述的錯誤主要是因為找不到`/usr/share/nginx/html/watch-photo`這個檔案(No such file or directory)
+
+在解釋為何傳回404之前，以防有讀者餔清楚URL的結構，這裡再次說明一下:
+```text
+[Protocol]://[host]/[file-path]
+```
+以我們的例子「http://localhost:31098/watch-photo」來說:
+  * **Protocol**: `傳輸協定`，這裡走http
+  * **host**: 可以是主機的`IP`或`domain name`，這裡是localhost(本機的domain name)，最後加上port 31098
+  * **file-path**: 想要存取的`檔案路徑`，這裡是watch-photo
+
+所以當我們沒有加上rewrite-target的annotation時，我們在curl中提供的URL會被轉換成以下URL:
+
+  (原本的URL --> 經ingress轉到的service --> service的pod)
+
+* `http://localhost:31098/watch-photo` -> `http://watch-photo-svc:80/watch-photo` -> http://192.168.1.7:80/watch-photo
+
+由於我們建立的pod都基於nginx，所以pod會預設你想存取的檔案路徑位於`/usr/share/nginx/html/`之下，所以它會去找`/usr/share/nginx/html/watch-photo`這個檔案，但這個檔案並不存在，所以才會丟出404。
+
+* 先暫時不要修改ingress，我們來驗證一下上面的說法:
+
+```bash
+kubectl exec -it watch-photo -- mv /usr/share/nginx/html/index.html /usr/share/nginx/html/watch-photo
+curl http://localhost:31098/watch-photo
+# output: Pohto from watch-photo
+```
+> 我們將watch-photo的index.html改名為watch-photo，這樣pod才找的到「/usr/share/nginx/html/watch-photo」，才能丟出正確的回應。
+
+不過這樣的設定方式並不正統，我們還是希望使用index.html作為預設的網頁。
+
+因此，我們希望使用者URL中的**file-path**會被「改寫」成 **"/"**，這樣當pod收到流量時就會認為使用者並沒有指定任何路徑，所以預設會去找/usr/share/nginx/html/index.html:
+
+  (原本的URL --> 經ingress轉到的service --> service的pod)
+
+* `http://localhost:31098/watch-photo` -> `http://watch-photo-svc:80/ -> http://192.168.1.7:80/ 
+
+我們將ingress重新加回annotation，並且再次測試一下:
+
+* 先復原剛才watch-photo的index.html
+```bash
+kubectl exec -it watch-photo -- mv /usr/share/nginx/html/watch-photo /usr/share/nginx/html/index.html
+```
+
+* 修改ingress，把annotation的註解拿掉
+```bash
+vim ingress-watch.yaml
+```
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+...
+...(省略)...
+```
+
+* 部署ingress後再次測試:
+```bash
+kubectl apply -f ingress-watch.yaml
+curl localhost:31098/watch-photo && curl localhost:31098/watch-video
 ```
 ```bash
-# 輸出如下
-2024/04/03 11:47:38 [error] 28#28: *2 open() "/usr/share/nginx/html/nginx-1" failed (2: No such file or directory), client: 192.168.1.6, server: localhost, request: "GET /nginx-1 HTTP/1.1", host: "localhost:31098"
-```
-
-**解釋**
-
-當我們沒有加上annotation時，curl後面的URL會被轉為:
-
-  (使用者輸入 --> 經ingress轉到的service --> service的pod)
-
-* `localhost:31098/nginx-1` -> `nginx-1-svc:80/nginx-1` -> 192.168.1.9:80/nginx-1
-* `localhost:31098/nginx-2` -> `nginx-2-svc:80/nginx-2` -> 192.168.1.10:80/nginx-2
-
-這樣nginx就會去找`/usr/share/nginx/html/nginx-1`這個檔案，但是這個檔案並不存在，所以才會出現`404 Not Found`的錯誤。
-
-* 因為ingress還沒改，我們用kubectl exec來驗證一下上面的說法(用nginx-1呼叫nginx-2):
-
-```bash
-# 嘗試呼叫nginx-2-svc:
-k exec -it nginx-1 -- curl nginx-2-svc:80/index.html
-k exec -it nginx-1 -- curl nginx-2-svc:80/nginx-2
-```bash
-# 輸出如下
-
 
 
 ## rewrite: https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/learn/lecture/16827080#overview
