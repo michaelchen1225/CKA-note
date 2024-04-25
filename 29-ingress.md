@@ -340,9 +340,9 @@ kubectl logs svc/watch-photo-svc | grep "error"
 
 所以當我們沒有加上rewrite-target的annotation時，user在curl中的URL會被轉換成以下URL:
 
-  ( 原本的URL --> 經ingress轉到的service --> service的pod )
+  (  原本的URL --> 經ingress轉到的service )
 
-* `http://${clusterIP}/photo` -> `http://watch-photo-svc:80/photo` -> http://192.168.1.8:80/photo
+* http://${clusterIP}/photo -> http://watch-photo-svc:80/photo
 
 由於提供服務的pod都基於nginx，所以pod會預設你想存取的檔案路徑位於`/usr/share/nginx/html/`之下，所以它會去找`/usr/share/nginx/html/photo`這個檔案路徑，但這個檔案並不存在，所以才會丟出404。
 
@@ -353,15 +353,15 @@ kubectl exec -it watch-photo -- mv /usr/share/nginx/html/index.html /usr/share/n
 kubectl exec -it user -- curl http://${clusterIP}/photo
 # output: Home page of watch-photo
 ```
-> 我們將watch-photo的index.html改名為watch-photo，這樣pod才找的到「/usr/share/nginx/html/watch-photo」，才能丟出正確的回應。
+> 我們將watch-photo的index.html改名為photo，這樣pod才找的到「/usr/share/nginx/html/photo」，才能丟出正確的回應。
 
 不過這樣的設定方式並不正統，我們還是希望使用index.html作為預設首頁。
 
 因此，我們希望user輸入URL中的**file-path**會被「改寫」成 **"/"**，這樣當pod收到流量時就會認為使用者並沒有指定任何路徑，所以預設會去找/usr/share/nginx/html/index.html:
 
-  ( 原本的URL --> 經ingress轉到的service --> service的pod )
+  (  原本的URL --> 經ingress轉到的service )
 
-* `http://${clusterIP}/photo` -> `http://watch-photo-svc:80/` -> http://192.168.1.7:80/ 
+* http://${clusterIP}/photo -> http://watch-photo-svc:80/ 
 
 >　所以「`nginx.ingress.kubernetes.io/rewrite-target: /`」的作用就是將ingress定義的rule.paths.path改寫成「/」，
 
