@@ -1,4 +1,4 @@
-# ingress
+# Ingress
 
 建立service後，我們就可以透過`ClusterIP`、`NodePort`、`LoadBalancer`等方式來存取`Pod`。以下為一個簡單的例子:
 
@@ -11,6 +11,7 @@
   2. `watch-video-svc`: 10.0.0.2:80
 
 如果使用者想要「看dog的圖片」，情況如下圖:
+
 ![only-service](29-1-only-svc.png)
 
 這樣的配置有以下缺點:
@@ -21,11 +22,11 @@
 
 要改善上面的缺點，我們設計出以下路由規則:
 
-看圖片: 
+* 想看圖片: 
   * **/watch-photo**: watch-photo的首頁(index.html)
   * **/watch-photo/\<file-path>**: watch-photo提供的圖片 (ex. /watch-photo/dog)
 
-看影片:
+* 想看影片:
   * **/watch-video**: watch-video的首頁(index.html)
   * **/watch-video/\<file-path>**: watch-video提供的影片 (ex. /watch-video/movie)   
 
@@ -40,19 +41,24 @@
 
 在一個cluster中可以同時存在多種`Ingress controller`，每種`Ingress controller`都有所屬的`Ingress class`與自己的service，兩者的功能如下:
 
+---
 * **Ingress class**
-
-  前面提到，`Ingress`制定需要`Ingress controller`來執行才能生效，所以我們在設定`Ingress`時必須透過設定`Ingress class`來指定要使用哪一個`Ingress controller`。所以當哪天想要換其他的`Ingress controller`來執行相同的路由規則時，只需修改`Ingress`的`Ingress class`即可。
+  
+  Ingress class的主要功能就是**區隔不同的Ingress資源**。
+  前面提到，`Ingress`需要`Ingress controller`來執行才能生效，所以我們在設定`Ingress`時必須透過設定`Ingress class`來指定要使用哪一個`Ingress controller`。所以當哪天想要換其他的controller來執行相同的路由規則時，只需修改`Ingress`的`Ingress class`即可。
+  
+  > 簡單來說，「用Ingress class來分隔不同的Ingress資源」就像「用班級來分隔不同的學生」，都可以讓管理更加有條理。
 
 * **Ingress controller的service**
 
-  當Ingress與Ingress controller建立起連繫後，使用者要透過domain name存取pod時，流程如下:
+  當Ingress透過Ingress controller生效後，使用者在存取Ingress背後的pod時，流程如下:
   
   1. 先經過`Ingress controller`的service抵達`Ingress controller`
   
   2. `Ingress controller`查找相對應的`Ingress`路由規則
   
   3. 流量從路由規則來到正確的service，最終到達提供服務的pod。
+***
 
 而為了達成`Ingress`所制定的規則，`Ingress controller`會透過kube-apiserver來監聽service與pod的變化，這樣才能根據`Ingress`的規則來做流量轉發。
 
@@ -66,6 +72,7 @@
 一下講了這麼多名詞，這裡一樣用「使用者想看圖片」的圖示來說明一下整個流程:
 
 ![with-ingress](29-2-with-ingress.png)
+
 > 藍色的圓圈即ingress class
 
 接著，我們來實際安裝`Ingress controller`。
@@ -137,7 +144,7 @@ kubectl get po -n ingress-nginx ingress-nginx-controller-7dcdbcff84-wl484 -o wid
 
 ***
 
-## Ingress 實作-1
+## Ingress 實作: 最簡單的Ingress設定
 
 底下將透過實作來說明`Ingress`的設定方式，本次實作的目的如下:
 
@@ -388,11 +395,11 @@ kubectl exec -it user -- curl http://${clusterIP}/photo && curl http://${cluster
 #         Home page of watch-video
 ```
 
-另外，ingress規則中path的設定與rewrite-target可以搭配**正規表達式(Regular Expressionr)**，我們來看一個例子:
+另外，ingress規則中path的設定與rewrite-target可以搭配**正規表達式(Regular Expressionr)**，我們再來看一個實作:
 
 ---
 
-**情境**
+## Ingresss 實作: 正規表達式的應用
 
 > watch-photo與watch-video的路徑配置，讓user可以造訪首頁或其他內容:
 
@@ -488,7 +495,7 @@ movie
 
 > 這樣是否能比較清楚rewirte-target的作用呢? 可以試著自己使用其他的regex來設定ingress的path，看看效果如何。
 
-## Ingress 實作-2
+## Ingress 實作-: 設定host name
 
 不過上面ingress的設定還是有問題，例如:
 
