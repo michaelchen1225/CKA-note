@@ -500,7 +500,6 @@ movie
 
  * 我們用user的/etc/hosts來模擬DNS，設定好後測試是否連得到首頁:
 ```bash
-# 10.100.51.11為ingress controller的service ClusterIP
 kubectl exec -it user -- echo "${clusterIP}  watch-photo-n-video.com" >> /etc/hosts && curl http://watch-photo-n-video.com/photo
 # 成功: Home page of watch-photo
 ```
