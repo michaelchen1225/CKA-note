@@ -11,6 +11,7 @@
 在上圖中，「sda1」是一顆硬碟，用來保存「/home」中的資料，這種方式就稱為「掛載(mount)」，而/home就稱為「掛載點(mount point)」。
 
 在k8s中，上面的「電腦」就是pod中的container，而「硬碟」就是pod中的`volume`，我們通樣以「掛載」的方式將一個`volume`掛載到pod中的container:
+
 ![volume](26-2-volume.png)
 
 除了存放資料之外，`volume`還有另一個用途: 讓pod中的多個container共享資料。例如在[Day 15](15-1-container-in-pod.md)的「sidecar container」範例中，pod裡有兩個`container`需共享log資料，因此我們使用了一個`volume`來存放log資料。
@@ -186,7 +187,7 @@ curl 10.42.0.9:80
 
 **提醒**
 
-雖然`hostPath`用起來相當簡單，但是會有安全上的疑慮，例如不明寫入會直接影響到host。因此一般建議掛載成「read-only」模式:
+雖然`hostPath`用起來相當簡單，但是會有安全上的疑慮，例如來源不明的寫入會直接影響到host。因此一般建議掛載成「read-only」模式:
 
 
 ```yaml
@@ -209,7 +210,8 @@ curl 10.42.0.9:80
 * 首先，我們先建立一個`configMap`與`secret`:
 
 ```bash
-kubectl create configmap user-data-config --from-literal=USER=michael
+echo "USER: michael" > user.config
+kubectl create configmap user-data-config --from-file=user.config
 kubectl create secret generic user-data-secret --from-literal=PASSWORD=123456
 ```
 
@@ -251,12 +253,14 @@ spec:
   * 建立pod後，透過`kubectl exec`來檢查是否有成功掛載:
 
 ```bash
-$ kubectl exec -it nginx -- ls /etc/config/USER
-michael
-
-$ kubectl exec -it nginx -- ls /etc/secret/PASSWORD
-123456
+kubectl exec -it nginx -- cat /etc/config/user.config
+# output: USER: michael
 ```
+```bash
+kubectl exec -it nginx -- cat /etc/secret/PASSWORD
+# output: 123456
+```
+> 可以留意一下建立configMap(或secret)的方式，也就是`--from-file`和`--from-literal`在volume-mount之後的差別。
 
 以上為Volumn的介紹
 

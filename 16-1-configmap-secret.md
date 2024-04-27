@@ -45,40 +45,37 @@ containers:
 
 但是一旦需要的環境變數開始變多，這樣設定非常沒有效率。且這樣的設定方式也不易閱讀。以上面的例子為例，如果能夠把`USER`和`PASSWORD`一起放在`user-data-config`中，再直接引入`pod`中，是不是會比較方便呢? 這時候就可以使用`configMap`和`secret`來達成這個目的。
 
-除了環境變數外，`configMap`和`secret`也可以用來設定`command-line 參數`, 或是`volume`中的設定檔等等。
-> volumn的介紹以及使用會在後續章節介紹
+除了環境變數外，`configMap`和`secret`也可以用來設定「command-line 參數」、存放「設定檔」等等。
+
+> configMap與secret通常會與volumn搭配使用，相關操作會在後續章節介紹
 
 ## ConfigMap
 
-`ConfigMap`是一個用來存放`key-value`的物件，建立`configMap`的方式如下:
+> 提醒: configMap不是用來存放大量資料的，所以configMap的資料輛不能超過1MB。
 
+建立`configMap`的方式如下:
+
+* 存放key-value類型的data:
 ```bash
 kubectl create configmap <configmap-name> --from-literal=<key>=<value>
 ```
-or
+
+* 存放檔案類型的data:
 ```bash
-kubectl create configmap <configmap-name> --from-file=<path-to-file>
+kubectl create configmap <configmap-name> --from-file=<file-path>
 ```
 
 舉例而言，如果要建立一個名為`user-data-config`的`configMap`，裡面有`USER`和`PASSWORD`兩個環境變數，可以這樣建立:
 ```bash
-kubectl create configmap user-data-config --from-literal=USER=michael --from-literal=PASSWORD=123456
+kubectl create configmap user-data-config-michael --from-literal=USER=michael --from-literal=PASSWORD=123456
 ```
 
-或者先準備好一個檔案，例如`user-data-config.env`:
-```txt
-USER: michael
-PASSWORD: 123456
-```
-然後使用`--from-file`的方式建立:
+建立configMap後，可以使用`describe`指令查看:
 ```bash
-kubectl create configmap user-data-config --from-file=user-data-config.env
+kubectl describe configmap user-data-config-michael
 ```
-
-建立`configMap`後，可以使用`describe`指令查看:
-```bash
-$ kubectl describe configmap user-data-config
-Name:         user-data-config
+```yaml
+Name:         user-data-config-michael
 Namespace:    default
 Labels:       <none>
 Annotations:  <none>
@@ -98,24 +95,74 @@ BinaryData
 Events:  <none>
 ```
 
+或者我們先準備好一個檔案，例如`user-data-config.env`:
+```bash
+echo -e "USER: Bob\nPASSWORD: 123456" > user-data-config.env
+```
+
+然後使用`--from-file`的方式建立`configMap`:
+```bash
+kubectl create configmap user-data-config-bob --from-file=user-data-config.env
+```
+> 如此一來，`configMap`存放的就是`user-data-config.env`這個檔案與其內容。
+
+建立`configMap`後，可以使用`describe`指令查看:
+```bash
+kubectl describe configmap user-data-config-bob
+```
+```yaml
+Name:         user-data-config-bob
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+user-data-config.env: # 注意到這裡多了一個檔名
+----
+USER: Bob
+PASSWORD: 123456
+
+
+BinaryData
+====
+
+Events:  <none>
+```
+
 > 當然，你也可以使用`yaml`檔案來建立`configMap`，例如:
+
+
+* 存放「key-value」類型的data:
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: user-data-config
+  name: user-data-config-alice
 data:
-    USER: "michael" # 記得加上引號
+    USER: "Alice" # 記得加上引號
     PASSWORD: "123456"
 ```
+
+* 存放「檔案」類型的data:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-data-config-alice
+data:
+  alice-data: |
+    USER=Alice 
+    PASSWORD=123456
+```
+> alice-data是檔案的名稱，USER=Alice和PASSWORD=123456是檔案的內容
+
 
 ## 使用 ConfigMap
 
 建立好`configMap`後，就可以在`pod`的中引入，而引入的方式分兩種:
   
 #### 1. **引入全部**: 將整份`configMap`引入`pod`中
-
-[官網](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)
 
 ```yaml
 apiVersion: v1
@@ -124,7 +171,7 @@ metadata:
   creationTimestamp: null
   labels:
     run: busybox
-  name: busybox
+  name: all-config
 spec:
   containers:
   - command:
@@ -132,12 +179,29 @@ spec:
     - "300"
     envFrom: # 引入configMap
     - configMapRef:
-        name: user-data-config 
+        name: user-data-config-michael
     image: busybox
     name: busybox
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Always
+```
+
+**測試**
+
+* 建立pod:
+```bash
+kubectl apply -f all-config.yaml
+```
+
+* 等待pod建立完成後，透過`kubectl exec`列出pod的環境變數:
+```bash
+kubectl exec -it all-config -- env | grep 'USER\|PASSWORD'
+```
+輸出:
+```text
+PASSWORD=123456
+USER=michael
 ```
 
 #### 2. **引入部分**: 只引入`configMap`某些`key`的`value`
@@ -149,7 +213,7 @@ metadata:
   creationTimestamp: null
   labels:
     run: busybox
-  name: busybox
+  name: part-config
 spec:
   containers:
   - command:
@@ -159,7 +223,7 @@ spec:
     - name: USER
       valueFrom:
         configMapKeyRef:
-          name: user-data-config 
+          name: user-data-config-michael
           key: USER # 只要USER的value
     image: busybox
     name: busybox
@@ -168,9 +232,27 @@ spec:
   restartPolicy: Always
 ```
 
+**測試**
+
+* 建立pod:
+```bash
+kubectl apply -f part-config.yaml
+```
+
+* 等待pod建立完成後，透過`kubectl exec`列出pod的環境變數:
+```bash
+kubectl exec -it part-config -- env | grep 'USER\|PASSWORD'
+```
+輸出:
+```text
+USER=michael
+```
+> 可以看到，只有`USER`的環境變數被引入
+
 #### 在指令中引入`ConfigMap`作為參數
 
 這算是環境變數的延伸應用，把環境變數作為指令的參數，例如:
+
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -178,7 +260,7 @@ metadata:
   creationTimestamp: null
   labels:
     run: busybox
-  name: busybox
+  name: arg-config
 spec:
   containers:
   - command: ["echo", "$(USER)"]
@@ -186,49 +268,71 @@ spec:
     - name: USER
       valueFrom:
         configMapKeyRef:
-          name: user-data-config 
+          name: user-data-config-michael
           key: USER
     image: busybox
-    name: busybox2
+    name: busybox
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Always
 status: {}
 ```
-建立`pod`後，可以看到`echo`的結果是`michael`:
-```bash
-$ kubectl apply -f busybox.yaml 
-pod/busybox created
 
-$ kubectl logs busybox 
+**測試**
+
+* 建立pod:
+```bash
+kubectl apply -f arg-config.yaml 
+```
+> 這裡pod執行完echo後就會結束，所以如果你看到非running的狀態，不用擔心
+
+* pod已經完成了它的任務，我們能透過`kubectl logs`指令查看結果:
+```bash
+kubectl logs arg-config
+```
+輸出:
+```text
 michael
 ```
-
 ## Secret
 
-`Secret`和`ConfigMap`很像，都是用來存放`key-value`的物件，不過`Secret`是用來存放較為機密資訊，例如密碼、金鑰等等。比如上面的例子中，直接將`PASSWORD`寫在`configMap`中是很不安全的。
+`Secret`和`ConfigMap`很像，都可以用來存放「key-value」或「檔案內容」，不過`Secret`是用來存放較為機密資訊，例如密碼、金鑰等等。
+
+> 比如上面的例子中，直接將`PASSWORD`寫在`configMap`中是很不安全的。
 
 建立`Secret`的方式和`configMap`很像，可以使用`--from-literal`或`--from-file`的方式建立:
 
 ```bash
-kubectl create secret generic user-data-secret --from-literal=PASSWORD=123456
+kubectl create secret generic user-data-secret-1 --from-literal=PASSWORD=123456
 ```
-或者先準備好一個檔案。例如`user-data-secret.env`，不過將`value`轉換成`base64`格式:
-```bash
-$ echo -n "123456" | base64
-MTIzNDU2
 
-$ echo "password: MTIzNDU2" > user-data-secret.env
-```
-然後同樣用`--from-file`建立:
+或者先準備好一個檔案。例如`user-data-secret.env`，不過將`value`轉換成`base64`格式:
+
+* 例如，將`123456`轉換成`base64`:
 ```bash
-kubectl create secret generic user-data-secret --from-file=user-data-secret.env
+echo -n "123456" | base64
+```
+轉成base64的輸出:
+```text
+MTIzNDU2
+```
+
+* 然後將`base64`的結果寫入`user-data-secret.env`:
+```bash
+echo "password: MTIzNDU2" > passwd.conf 
+```
+
+* 最後同樣用`--from-file`建立:
+```bash
+kubectl create secret generic user-data-secret-2 --from-file=passwd.conf
 ```
 
 使用`describe`指令查看`secret`，會發現`value`的訊息已經被隱藏了:
 ```bash
-$ kubectl describe secret user-data-secret
-Name:         user-data-secret
+kubectl describe secret user-data-secret-1 user-data-secret-2
+```
+```yaml
+Name:         user-data-secret-1
 Namespace:    default
 Labels:       <none>
 Annotations:  <none>
@@ -237,18 +341,45 @@ Type:  Opaque
 
 Data
 ====
-user-data-secret.env:  19 bytes
+PASSWORD:  6 bytes
+
+
+Name:         user-data-secret-2
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Type:  Opaque
+
+Data
+====
+passwd.conf:  19 bytes
 ```
-> 不過，如果使用`kubectl get secret user-data-secret -o yaml`指令，還是可以看到`value`
+> 不過，如果使用`kubectl get secret <secret> -o yaml`指令，還是可以看到「data」，所以並不絕對安全。
 
 同樣的，你也可以用`yaml`建立`secret`:
+
+* 存放「key-value」類型的data:
+
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: user-data-secret
+  name: user-data-secret-3
 data:
   PASSWORD: MTIzNDU2 # 使用base64編碼的"123456"
+```
+
+* 存放「檔案」類型的data:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user-data-secret-4
+data:
+  passwd.conf: |
+    MTIzNDU2
 ```
 
 ## 使用 Secret
@@ -263,7 +394,7 @@ data:
 # 同樣於spec.containers.envFrom中引入
 envFrom: 
 - secretRef:
-    name: user-data-secret 
+    name: user-data-secret -1
 ```
 #### 2. **部分引入**: 只引入`secret`某些`key`的`value`
 
@@ -273,7 +404,7 @@ env:
 - name: PASSWORD
   valueFrom:
     secretKeyRef:
-      name: user-data-secret 
+      name: user-data-secret-1
       key: PASSWORD
 ```
 
