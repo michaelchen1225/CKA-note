@@ -47,7 +47,7 @@ containers:
 
 除了環境變數外，`configMap`和`secret`也可以用來設定「command-line 參數」、存放「設定檔」等等。
 
-> configMap與secret通常會與volumn搭配使用，相關操作會在後續章節介紹
+> configMap與secret可以和volumn搭配使用，相關操作會在後續章節介紹
 
 ## ConfigMap
 
@@ -55,17 +55,20 @@ containers:
 
 建立`configMap`的方式如下:
 
-* 存放key-value類型的data:
+1. 存放key-value類型的data:
 ```bash
 kubectl create configmap <configmap-name> --from-literal=<key>=<value>
 ```
 
-* 存放檔案類型的data:
+2. 存放檔案類型的data:
 ```bash
 kubectl create configmap <configmap-name> --from-file=<file-path>
 ```
 
-舉例而言，如果要建立一個名為`user-data-config`的`configMap`，裡面有`USER`和`PASSWORD`兩個環境變數，可以這樣建立:
+舉例而言，如果要建立一個名為`user-data-config`的`configMap`，裡面存放使用者的相關資料，可以這樣建立:
+
+1. **用key-value的方式存放於`configMap`**:
+
 ```bash
 kubectl create configmap user-data-config-michael --from-literal=USER=michael --from-literal=PASSWORD=123456
 ```
@@ -95,9 +98,11 @@ BinaryData
 Events:  <none>
 ```
 
-或者我們先準備好一個檔案，例如`user-data-config.env`:
+2. **用檔案的方式存放於`configMap`**:
+
+* 我們先準備好一個檔案，例如`user-data-config.env`:
 ```bash
-echo -e "USER: Bob\nPASSWORD: 123456" > user-data-config.env
+echo -e "# this is Bob's data\nUSER: Bob\nPASSWORD: 123456" > user-data-config.env
 ```
 
 然後使用`--from-file`的方式建立`configMap`:
@@ -120,6 +125,7 @@ Data
 ====
 user-data-config.env: # 注意到這裡多了一個檔名
 ----
+# this is Bob's data
 USER: Bob
 PASSWORD: 123456
 
@@ -134,6 +140,7 @@ Events:  <none>
 
 
 * 存放「key-value」類型的data:
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -149,11 +156,12 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: user-data-config-alice
+  name: user-data-config-jack
 data:
-  alice-data: |
-    USER=Alice 
-    PASSWORD=123456
+  alice-data: | 
+  # this is Jack's data
+    USER: Jack
+    PASSWORD: 123456
 ```
 > alice-data是檔案的名稱，USER=Alice和PASSWORD=123456是檔案的內容
 
@@ -284,7 +292,7 @@ status: {}
 ```bash
 kubectl apply -f arg-config.yaml 
 ```
-> 這裡pod執行完echo後就會結束，所以如果你看到非running的狀態，不用擔心
+> 這裡pod執行完echo後就會結束，結束後就不會是running的狀態
 
 * pod已經完成了它的任務，我們能透過`kubectl logs`指令查看結果:
 ```bash
@@ -418,5 +426,8 @@ $ echo "MTIzNDU2" | base64 -d
 
 所以單單使用`secret`並不能有效的保護敏感資料，必須搭配其安全機制，例如後續會介紹的`RBAC`、`靜態加密`等等，這裡提供相關的參考資料:
  * [Kubernetes官方文件](https://kubernetes.io/docs/concepts/configuration/secret/)
+
  * [Encrypting Secret Data at Rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)
+
+ * https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-container-environment-variables-using-configmap-data
  
