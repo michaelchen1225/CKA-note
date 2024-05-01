@@ -93,12 +93,12 @@ kubectl cp index.html web:/usr/share/nginx/html/index.html
 
 * dev-user:
 ```bash
-kubectl exec -it dev-user --namespace=dev -- curl web-svc.default
+kubectl exec -it dev-user --namespace=dev -- curl web-svc.default --max-time 1
 ```
 
 * prod-user:
 ```bash
-kubectl exec -it prod-user --namespace=prod -- curl web-svc.default
+kubectl exec -it prod-user --namespace=prod -- curl web-svc.default --max-time 1
 ```
 
 兩者都存取的到`web` :
@@ -106,7 +106,25 @@ kubectl exec -it prod-user --namespace=prod -- curl web-svc.default
 Hello, this is web
 ```
 
-而我們的目標是: 只有`dev-user`可以走80 port連到`web`，而`prod-user`不行，如下圖:
+而`web`也可以連到`dev-user`與`prod-user`:
+
+* 連到dev-user:
+```bash
+kubectl exec -it web -- curl dev-user-svc.dev --max-time 1
+```
+```text
+Hello, this is dev-user
+```
+
+* 連到prod-user:
+```bash
+kubectl exec -it web -- curl prod-user-svc.prod --max-time 1
+```
+```text
+Hello, this is prod-user
+```
+
+而我們的目標是: 只有`dev-user`可以走TCP的80 port連到`web`，而`prod-user`不行，如下圖:
 
 ![ingress](30-1-ingress.png)
 
@@ -149,7 +167,7 @@ spec:
 
 
   * **ingress**:
-    * **from**: 指定誰可以連進來，這裡是「在label為`env=dev`的namespace之下，所有label為`role:dev-user`的pod」。
+    * **from**: 列出「誰可以連進來(**白名單**)」，這裡是「在label為`env=dev`的namespace之下，所有label為`role:dev-user`的pod」。
     
     * **ports**: 允許「在label為`env=dev`的namespace之下，所有label為`role:dev-user`的pod」連到`web`的80 port。
   
@@ -211,7 +229,7 @@ Spec:
 
 * 來測試一下`dev-user`是否可以連到`web`:
 ```bash
-kubectl exec -it dev-user --namespace=dev -- curl web-svc.default
+kubectl exec -it dev-user --namespace=dev -- curl web-svc.default --max-time 1
 ```
 ```text
 Hello, this is web
@@ -219,14 +237,19 @@ Hello, this is web
 
 * 再來測試一下`prod-user`:
 ```bash
-kubectl exec -it prod-user --namespace=prod -- curl web-svc.default
+kubectl exec -it prod-user --namespace=prod -- curl web-svc.default --max-time 1
 ```
-
-`prod-user`執行curl會卡住，因為`prod-user`被`Network Policy`擋住了。可以按ctrl+C中斷它。
+```text
+curl: (28) Connection timed out after 1000 milliseconds
+command terminated with exit code 28
+```
+`prod-user`執行curl後，卻無法連到`web`，符合上面`Network Policy`的設定。
 
 ## 範例 - Egress
 
-接下來我們來看看`Egress`的例子，這次我們要讓`web`只能對外走80 port連到`prod-user`，但不能連到`dev-user`，如下圖:
+接下來我們來看看`Egress`的例子:
+
+保留原本ingress的設定，並且讓`web`只**能對**外走TCP的80 port連到`prod-user`，但不能連到`dev-user`，如下圖:
 
 ![egress](30-2-egress.png)
 
@@ -268,7 +291,7 @@ spec:
       port: 80
 ```
 
-> 其實設定起來和`Ingress`差不多，不過要把`from`換成`to`。
+> 其實設定起來和`Ingress`差不多，不過要把`from`換成`to`，同樣在底下設定「白名單」。
 
 * 部署修改後的`Network Policy`:
 ```bash
@@ -302,22 +325,26 @@ Spec:
 
 * 來測試一下`web`是否可以連到`prod-user`:
 ```bash
-kubectl exec -it web -- curl prod-user-svc.prod
+kubectl exec -it web -- curl prod-user-svc.prod --max-time 1
 ```
-你會發現竟然行不通，為甚麼呢?
+```text
+curl: (28) Resolving timed out after 1000 milliseconds
+command terminated with exit code 28
+```
+> 竟然行不通! 為甚麼呢?
 
-原因是，我們在curl中用prod-user-svc的**domain name**去呼叫服務，要使用domain name則需要cluster中的coreDNS來解析，而coreDNS是在kube-system namespace下，但我們的`Network Policy`並沒有設定允許`web` pod連到kube-system namespace，所以才會測試失敗。
+原因是，我們在curl中用prod-user-svc的**domain name**去呼叫服務，要使用domain name則需要cluster中的coreDNS來解析，而coreDNS位於`kube-system` namespace下，但我們的`Network Policy`並沒有設定允許`web` pod連到`kube-system` namespace，所以才會測試失敗。
 
-* 如果改用prod-user0svc的IP去嘗試，就會測試成功:
+* 既然連不到coreDNS，我們改用prod-user0svc的**IP**去嘗試看看:
 ```bash
 prod_svc_ip=$(kubectl get svc prod-user-svc -o jsonpath="{.spec.clusterIP}" -n prod)
-kubectl exec -it web -- curl $prod_svc_ip
+kubectl exec -it web -- curl $prod_svc_ip --max-time 1
 ```
 ```text
 Hello, this is prod-user
 ```
 
-也可以將`Network Policy`修改一下，讓`web`可以連到`kube-system` namespace下的所有pod:
+用IP就能夠成功存取。另外，我們也可以將`Network Policy`修改一下，讓`web`可以連到`kube-system` namespace下的所有pod，藉此來解決coreDNS的問題:
 
 * 查看一下kube-system namespace的label:
 ```bash
@@ -337,7 +364,8 @@ NAME       TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
 kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   18d
 ```
 
-* 將`Network Policy`修改一下，允許「`web` pod經由TCP 53 port連到`kube-system` namespace的所有pod」:
+* 將`Network Policy`修改一下，允許「`web` pod經由**UDP** 53 port連到`kube-system` namespace的所有pod」:
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -387,7 +415,7 @@ kubectl apply -f web-policy.yaml
 
 * 再次測試`web`是否可以連到`prod-user`:
 ```bash
-kubectl exec -it web -- curl prod-user-svc.prod
+kubectl exec -it web -- curl prod-user-svc.prod --max-time 1
 ```
 ```yaml
 # 成功!
@@ -396,7 +424,277 @@ Hello, this is prod-user
 
 * 測試看看`web`是否可以連到`dev-user`:
 ```bash
-kubectl exec -it web -- curl dev-user-svc.dev
+kubectl exec -it web -- curl dev-user-svc.dev --max-time 1
+```
+```text
+curl: (28) Connection timed out after 1000 milliseconds
+command terminated with exit code 2
 ```
 
-果然連不到，正如我們在`Network Policy`中設定的一樣。
+果然連不到，和我們在`Network Policy`中設定的一樣。
+
+## 範例 - matchExpressions
+
+如果今天我們想讓`web` pod可以對外走80 port連到`prod`與`dev` namespace下的所有pod，在設定規則時可以用兩個`namespaceSelector`來達成，不過這樣的設定會讓`Network Policy`變得冗長且沒彈性。
+
+這時候可以使用`matchExpressions`來簡化設定:
+
+* 刪掉`Ingress`的規則，並且修改`Egress`，讓`web` pod可以對外走TCP/80與UDP/53連到`prod`、`dev`、`kube-system` namespace下的所有pod
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: web
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchExpressions:
+        - key: env
+          operator: In
+          values: ["dev", "prod"]
+    - namespaceSelector:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values: ["kube-system"]
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: UDP
+      port: 53
+```
+
+* 重新部署修改後的`Network Policy`:
+```bash
+kubectl apply -f web-policy.yaml
+```
+
+* 測試一下`web`是否可以連到`prod-user`:
+```bash
+kubectl exec -it web -- curl prod-user-svc.prod --max-time 1
+```
+```text
+Hello, this is prod-user
+```
+
+* 再來測試一下`web`是否可以連到`dev-user`:
+```bash
+kubectl exec -it web -- curl dev-user-svc.dev --max-time 1
+```
+```text
+Hello, this is dev-user
+```
+
+## 範例 - Default Policy
+
+我們可以為某個namespace設定預設的`Network Policy`，我們直接看[官網](https://kubernetes.io/docs/concepts/services-networking/network-policies/#default-policies)的yaml範例:
+
+
+### Ingress: 
+
+* 預設**拒絕**所有進來的流量:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+```
+> {}表示「所有」
+
+* 預設**允許**所有進來的流量:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-ingress
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+  policyTypes:
+  - Ingress
+```
+### Egress:
+
+* 預設**拒絕**所有出去的流量
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+```
+
+* 預設**允許**所有出去的流量
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-egress
+spec:
+  podSelector: {}
+  egress:
+  - {}
+  policyTypes:
+  - Egress
+  ```
+
+## 補充: Network Policy會彼此衝突嗎?
+
+Network Policy並不會彼此衝突，而是會將「白名單」相加形成「白名單**聯集**」，我們來實驗看看:
+
+* 建立三個看似彼此衝突的`Network Policy` yaml:
+
+  1. 允許所有流量進到`default` namespace下的所有pod:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-ingress
+  namespace: default
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+  policyTypes:
+  - Ingress
+  ```
+
+  2. 拒絕所有流量進到`default` namespace下的所有pod:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+```
+
+  3. 只有`dev-user`可以走TCP的80 port連到`web` pod:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: dev-user
+      namespaceSelector:
+        matchLabels:
+          env: dev
+    ports:
+    - protocol: TCP
+      port: 80
+```
+  
+* 部署這三個`Network Policy`:
+```bash
+kubectl apply -f allow-all-ingress.yaml
+kubectl apply -f default-deny-ingress.yaml
+kubectl apply -f web-policy.yaml
+```
+
+所以這三個`Network Policy`的「白名單聯集」就是三者的效果:
+
+**allow-all-ingress 白名單**: 所有pod
+
+**default-deny-ingress 白名單**: {}
+
+**web-policy 白名單**: dev-user
+
+> **「白名單聯集」效果**: 允許所有流量進到`default` namespace下的所有pod
+
+來驗證一下:
+
+* `dev-user`連到`web`:
+```bash
+kubectl exec -it dev-user --namespace=dev -- curl web-svc.default --max-time 1
+```
+```text
+Hello, this is web
+```
+
+* `prod-user`連到`web`:
+```bash
+kubectl exec -it prod-user --namespace=prod -- curl web-svc.default --max-time 1
+```
+```text
+Hello, this is web
+```
+
+然後，我們移除`allow-all-ingress`的`Network Policy`:
+```bash
+kubectl delete networkpolicy allow-all-ingress
+```
+
+此時的「白名單聯集」就變成了:
+
+**default-deny-ingress 白名單**: {}
+
+**web-policy 白名單**: dev-user
+
+
+> **「白名單聯集」效果**: 只有`dev-user`可以走TCP的80 port連到`web` pod
+
+驗證一下:
+
+* `dev-user`連到`web`:
+```bash
+kubectl exec -it dev-user --namespace=dev -- curl web-svc.default --max-time 1
+```
+```text
+Hello, this is web
+```
+
+* `prod-user`連到`web`:
+```bash
+kubectl exec -it prod-user --namespace=prod -- curl web-svc.default --max-time 1
+```
+```text
+curl: (28) Connection timed out after 1001 milliseconds
+command terminated with exit code 28
+```
+
+這就是`Network Policy`的「白名單聯集」效果。
+
+### 小結
+
+以上為`Network Policy`的基本概念與範例，透過`Network Policy`可以更精細地控制pod之間的網路流量，讓cluster更安全、更有效率。
+
+參考:
+
+https://godleon.github.io/blog/Kubernetes/k8s-Network-Policy-Overview/
+
+https://kubernetes.io/docs/concepts/services-networking/network-policies/
+
+https://github.com/kubernetes/kubernetes/issues/75435
