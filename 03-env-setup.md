@@ -84,6 +84,11 @@ sudo systemctl enable containerd
 systemctl status containerd
 ```
 
+設定crictl需要的socket位置:
+```bash
+sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
+```
+
 > containerd和docker都是container runtime， 兩者的差異可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
 
 安裝後，需要將cgroup-driver設定為`k8s cluster`所需的`systemd`:
