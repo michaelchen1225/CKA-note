@@ -266,7 +266,7 @@ kubectl get nodes
 
 常見的CNIs例如`flannel`、`calico`等。這裡兩種安裝方式都會介紹:
 
-> 這裡比較推薦安裝calico，因為calico有支援後續章節會介紹的`NetworkPolicy`。
+> 這裡推薦安裝calico，因為calico有支援後續章節會介紹的`NetworkPolicy`。
 
 **flannel**
 
