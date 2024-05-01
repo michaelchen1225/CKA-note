@@ -626,11 +626,11 @@ kubectl apply -f web-policy.yaml
 
 所以這三個`Network Policy`的「白名單聯集」就是三者的效果:
 
-**allow-all-ingress 白名單**: 所有pod
+allow-all-ingress 白名單: 所有pod
 
-**default-deny-ingress 白名單**: {}
+default-deny-ingress 白名單: { }
 
-**web-policy 白名單**: dev-user
+web-policy 白名單: dev-user
 
 > **「白名單聯集」效果**: 允許所有流量進到`default` namespace下的所有pod
 
@@ -659,9 +659,9 @@ kubectl delete networkpolicy allow-all-ingress
 
 此時的「白名單聯集」就變成了:
 
-**default-deny-ingress 白名單**: {}
+default-deny-ingress 白名單: { }
 
-**web-policy 白名單**: dev-user
+web-policy 白名單: dev-user
 
 
 > **「白名單聯集」效果**: 只有`dev-user`可以走TCP的80 port連到`web` pod
