@@ -74,5 +74,5 @@
 
 [Day29 Ingress](29-ingress.md)
 
-
+[Day30 Network Policy](30-network-policy.md)
 
