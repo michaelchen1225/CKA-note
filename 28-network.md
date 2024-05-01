@@ -42,7 +42,7 @@
 
   * `cilium`
 
-> CNI是CNCF的一個開源專案，可以在他們的[github](https://github.com/containernetworking/cni)上找到更多關於CNI的資訊。
+> CNI是CNCF的一個開源專案，可以在他們的[github](https://github.com/containernetworking/cni)或是[k8s 官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)上找到更多關於CNI的資訊。
 
 
 ## CNI 與 Service、kube-proxy的關係
@@ -51,19 +51,19 @@
 
   * `CNI` : cluster中的**網路基礎**，注重的是「**如何配置pod的基本網路**」，例如IP分配、虛擬網路卡設定
 
-  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod，注重的是「**如何穩定的存取pod**」，例如NodePort、ClusterIP
+  * `Service` : 提供了穩定的**統一介面**讓外界來訪問 Pod，例如NodePort、ClusterIP
 
   * `kube-proxy` : 負責處理cluster中的**路由規則**，注重的是「**如何轉發流量**」，例如iptables、ipvs
 
 當一個 Pod 被建立並建立service後，會發生:
 
-* `CNI` (Container Network Interface)：配置網絡接口，與分配一個 IP 給pod，再設定虛擬網路卡介面等**基礎**設定。
+* `CNI` (Container Network Interface)：配置網絡接口，與分配一個 IP 給pod，再設定虛擬網路卡介面等**基礎**設定。通常以**daemonset**的方式部署在每個node上。
 
 * `Service`: k8s並不會自動的建立service。如果使用者依需求自行幫pod建立`service`後，`kube-apiserver`會為這個service分配一個IP
 
-* `kube-proxy`：隨時的觀察`service`的狀態，當有`service`被建立後，`kube-proxy`會配置相對應的路由規則，讓整個cluster都能夠存取這個`service`。當`service`被刪除後，`kube-proxy`也會刪除相對應的路由規則。
+* `kube-proxy`：隨時的觀察`service`的狀態，當有`service`被建立後，`kube-proxy`會配置相對應的路由規則，讓整個cluster都能夠存取這個`service`。當`service`被刪除後，`kube-proxy`也會刪除相對應的路由規則。通常以**daemonset**的方式部署在每個node上。
 
-有了以上三者的配合後，「IP分配」、「路由規則」基本上就搞定了。(當然，還有DNS的部分，我們後面會提到)
+有了以上三者的配合後，「IP分配」、「存取」、「路由規則」基本上就搞定了。(當然，還有DNS的部分，我們後面會提到)
 
 > 至於建立service的介紹這裡就不再贅述，可以參考之前的[Day06](06-1-svc.md)
 
@@ -299,7 +299,7 @@ nameserver 1.1.1.1
 
 > 簡而言之，「DNS」的任務就是「完成domain name與IP的對應」
 
-在k8s中，也有`DNS server`來完成相同的任務。我們不需要知道service的IP，只要知道service的「domain name」即可存取，而k8s預設的`DNS server`就是`CoreDNS`。
+在k8s中，也有`DNS server`來完成相同的任務。我們不需要知道service的IP，只要知道service的「domain name」即可存取，而k8s預設的`DNS server`就是`CoreDNS`，在53 port 上監聽需求。
 
 [CoreDNS](https://coredns.io/)是一個用Go語言寫的DNS server，高度的靈活性使它能在多種環境中部署，其中一種就是k8s cluster。
 
