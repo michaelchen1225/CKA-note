@@ -262,7 +262,11 @@ kubectl get nodes
 
 ### Step 7 : 安裝Pod network
 
-你可以選用常見的CNIs，例如`flannel`、`calico`等。這裡兩種安裝方式都會介紹:
+為了讓cluster中的pod可以彼此溝通，我們需要安裝**CNI**(Container Network Interface)來部署pod network，可參考[官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)選則CNI。
+
+常見的CNIs例如`flannel`、`calico`等。這裡兩種安裝方式都會介紹:
+
+> 這裡比較推薦安裝calico，因為calico有支援後續章節會介紹的`NetworkPolicy`。
 
 **flannel**
 
