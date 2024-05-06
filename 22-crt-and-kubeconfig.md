@@ -238,6 +238,11 @@ kubectl config current-context
 kubectl config use-context <context-name>
 ```
 
+* 使用特定的`kubeconfig`來操作`kubectl`指令:
+```bash
+kubectl <command> --kubeconfig=<path-to-kubeconfig>
+```
+
 相關的其他操作可以參考`kubectl config -h`，或參考[這裡](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#config)
 
 
