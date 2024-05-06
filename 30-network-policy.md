@@ -702,6 +702,29 @@ command terminated with exit code 28
 
 這就是`Network Policy`的「白名單聯集」效果，所以不用擔心`Network Policy`會彼此衝突。
 
+## 補充 - 針對特定的port開放所有流量
+
+假如我想要開放讓**所有**的流量都能從 80/TCP 進到`web` pod，可以這樣設定:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 80
+```
+
+
 ### 小結
 
 以上為`Network Policy`的基本概念與範例，透過`Network Policy`可以更精細地控制pod之間的網路流量，讓cluster更安全、更有效率。
