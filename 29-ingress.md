@@ -535,14 +535,14 @@ spec:
   - host: "watch-photo-n-video.com" # 加入host欄位，設定domain name
     http:
       paths:
-      - path: /watch-photo(/|$)(.*)
+      - path: /photo(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
           service:
             name: watch-photo-svc
             port:
               number: 80
-      - path: /watch-video(/|$)(.*)
+      - path: /video(/|$)(.*)
         pathType: ImplementationSpecific
         backend:
           service:

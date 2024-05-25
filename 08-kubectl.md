@@ -20,9 +20,15 @@ deployment|deploy
 service|svc
 namespace|ns
 
-例如要查看所有`deployment`，以前我們會下達`kubectl get deployment`，而搭配縮寫後，只要敲:
+
+* 例如要查看所有`deployment`，以前我們會下達`kubectl get deployment`，而搭配縮寫後，只要敲:
 ```bash
 kubectl get deploy
+```
+
+* 查看其他物件的縮寫:
+```bash
+kubectl api-resources
 ```
 
 ## 常用指令整理 --- get & describe
@@ -36,6 +42,7 @@ kubectl get all
 ```bash
 kubectl get <object-type>
 ```
+
 * 計算有多少物件
 ```bash
 kubectl get <object-type> | wc -l
@@ -51,21 +58,32 @@ kubectl get <object-type> --no-headers | wc -l
 kubectl -n <namespace-name> get <object-type>
 # 我習慣將`-n <namespace-name>`放在最前面，這樣比較不容易忘記
 ```
-> 補充: 只要有任何操作有關於特定`namespace`，都可以加上`-n <namespace-name>`來指定
+> 只要有任何操作有關於特定`namespace`，都可以加上`-n <namespace-name>`來指定
 
 * 查看物件的`yaml`
 ```bash
 kubectl get <object-type> <object-name> -o yaml
 ```
+> "-o" 可以指定輸出的格式，例如: json、yaml、wide等等
+
 * 查看物件的`label`
 ```bash
 kubectl get <object-type> --show-labels
 ```
+
 * 使用`selector`篩選特定的物件
 ```bash
 kubectl get <object-type> -l <key=value>
 # 多個label用逗號隔開，例如: -l <key1=value1,key2=value2>
 ```
+
+* 搭配jsonpath查看特定欄位
+```bash
+kubectl get <object-type> -o jsonpath=<jsonpath-expression>
+```
+
+> 關於`jsonpath`的介紹與使用，可以參考[這裡](33-jsonpath.md)
+
 * 查看物件的詳細資訊
 ```bash
 kubectl describe <object-type> <object-name>
@@ -106,6 +124,16 @@ kubeclt run <pod-name> --image <image-name>  --dry-run=client -o yaml > <filenam
 # 其實只要是`kubectl create`或`kubectl run`都可以使用`--dry-run=client -o yaml`來產生yaml樣本 !
 ```
 
+* 查看`pod`的log:
+```bash
+kubectl logs <pod-name>
+```
+
+* 查看`pod`的IP
+```bash
+kubectl get pod <pod-name> -o wide
+```
+
 ## 常用指令整理 --- `Deployment`
 
 * 建立一個`deployment`
@@ -118,6 +146,7 @@ kubectl create deploy <deploy-name> --image <image-name> --replicas <replicas-nu
 ```bash
 kubectl create deploy <deploy-name> --image <image-name> --replicas <replicas-number> --port <port-number>
 ```
+
 * 改變`deployment`的`replicas`數量
 ```bash
 kubectl scale deploy <deploy-name> --replicas <new-replicas-number>
