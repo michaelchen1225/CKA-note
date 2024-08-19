@@ -92,6 +92,14 @@ sudo systemctl enable containerd
 systemctl status containerd
 ```
 
+接著安裝 crictl，一個用來操作 Container Runtime Interface (CRI) 的 CLI 工具：
+```bash
+VERSION="v1.30.0" # check latest version in /releases page
+curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-${VERSION}-linux-amd64.tar.gz --output crictl-${VERSION}-linux-amd64.tar.gz
+sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
+rm -f crictl-$VERSION-linux-amd64.tar.gz
+```
+
 設定crictl需要的socket位置:
 
 ```bash
@@ -516,4 +524,7 @@ sudo apt-get autoremove
 * [Quickstart for Calico on Kubernetes](https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart)
 
 * [containerd cgroup setup](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#containerd-systemd)
+
+* [Container Runtime Interface (CRI) CLI](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md)
+
 
