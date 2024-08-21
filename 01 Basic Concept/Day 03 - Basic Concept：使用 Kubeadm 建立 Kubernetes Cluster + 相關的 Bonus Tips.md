@@ -189,7 +189,7 @@ rm -f crictl-$VERSION-linux-amd64.tar.gz
 sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```
 
-> **補充**：containerd 和 Docker 都是 container runtime， 兩者的差異可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
+> > **補充**：containerd 和 Docker 的關係可以參考[這裡](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)，兩者之區別可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
 
 安裝 containerd 與 crictl 後，需要將 cgroup-driver 設定為 k8s cluster 所需的 **systemd**：
 

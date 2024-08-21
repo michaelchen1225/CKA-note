@@ -57,7 +57,9 @@
 
 2. **Container Runtime**
 
-   在 Pod 中執行的容器，都需要容器的「執行引擎」才能跑起來，這就是「container runtime」，常見的有 : Docker、Containerd、CRI-O 等。
+   在 Pod 中執行的容器，都需要容器的「執行引擎」才能跑起來，這就是「container runtime」，常見的有 : Containerd、CRI-O 等。
+
+> 常聽到的 Docker 並不是 Container Runtime，而是「包含」著 Container Runtime 的容器管理工具，兩者間的關係可以參考[這篇文章](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)
 
 3. **Kube-porxy**
 
