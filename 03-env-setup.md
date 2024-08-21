@@ -12,7 +12,7 @@
   * 移除 cluster 中的 Worker Node
 
 
-在接下來的章節中，將會有許多範例或練習需要對 cluster 進行操作，所以我們需要事先準備一個練習的環境，以下提供了兩種方法進行建置：
+在接下來的章節中，將會有許多範例或練習需要對 cluster 進行操作，所以需要先準備練習用的 cluster，以下提供了兩種方法進行建置：
 
 ### 方法一 : playground
 
@@ -85,7 +85,7 @@ kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立
 
 > 不同 Linux 版本的安裝步驟可以參考[官方文件](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#option-2-from-apt-get-or-dnf)，這裡以 Ubuntu 為例。
 
-設定好 Apt repo 的 GPG key:
+設定好 Apt repo 的 GPG key：
 
 ```bash
 sudo apt-get update
@@ -160,7 +160,7 @@ containerd config default | sudo tee /etc/containerd/config.toml
 ......
 ```
 
-最後重新啟動 containerd：
+重新啟動 containerd：
 ```bash
 sudo systemctl restart containerd
 ```
@@ -196,8 +196,6 @@ ls -d /etc/apt/keyrings 2> /dev/null || sudo mkdir -p -m 755 /etc/apt/keyrings
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-# 如果 curl 顯示錯誤，檢查一下是不是剛剛沒有建立 /etc/apt/keyrings 目錄？
-
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 ```
 
@@ -223,6 +221,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 ```bash
 kubeadm version
 ```
+輸出：
 ```text
 kubeadm version: &version.Info{Major:"1", Minor:"31", GitVersion:"v1.31.0", GitCommit:"9edcffcde5595e8a5b1a35f88c421764e575afce", GitTreeState:"clean", BuildDate:"2024-08-13T07:35:57Z", GoVersion:"go1.22.5", Compiler:"gc", Platform:"linux/amd64"}
 ```
@@ -232,6 +231,7 @@ kubeadm version: &version.Info{Major:"1", Minor:"31", GitVersion:"v1.31.0", GitC
 ```bash
 kubelet --version
 ```
+輸出：
 ```text
 Kubernetes v1.31.0
 ```
@@ -241,6 +241,7 @@ Kubernetes v1.31.0
 ```bash
 kubectl version --client
 ```
+輸出：
 ```text
 Client Version: v1.31.0
 Kustomize Version: v5.4.2
@@ -590,6 +591,12 @@ sudo apt-get autoremove
 * [Kubernetes Cluster Setup with Containerd](https://saurabhkharkate05.medium.com/kubernetes-cluster-setup-with-containerd-945214a0d02c)
 
 * [Installing kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+
+* [Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+
+* [kubectl completion](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_completion/)
+
+* [Getting started with containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#option-2-from-apt-get-or-dnf)
 
 * [Day 21：使用kubeadm建立集群](https://ithelp.ithome.com.tw/articles/10305268)
 
