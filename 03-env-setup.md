@@ -1,3 +1,5 @@
+# Day 03 - Basic Concept：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips
+
 ### 今日目標
 
 * 準備一個 Kubernetes cluster 做為練習環境
@@ -6,6 +8,7 @@
 
 * Bonus Tips：
   * 設定 kubectl bash completion
+  * 加入新的 Worker Node
   * 在 Worker Node 使用 kubectl
   * kubeadm 初始化過程中的除錯
   * 建立 single node cluster
