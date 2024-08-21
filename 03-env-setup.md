@@ -66,7 +66,60 @@ kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立
   
   * [設定Ubuntu IP](https://sam.liho.tw/2022/09/29/ubuntu-22-04-%E6%8C%87%E4%BB%A4-cli-%E8%A8%AD%E5%AE%9A%E7%B6%B2%E8%B7%AF%E7%AD%86%E8%A8%98/)
 
-安裝好虛擬機和設定好 IP 後，就可以開始 cluster 的建置了。
+設定好 IP 後，建議也將 ssh 設定好，方便日在管理 cluster 切換到不同 Node 上操作。底下我們用上表中的 Master 與 worker1 為例：
+
+> 在 Master 與 worker 1 上進行以下操作
+
+* 安裝 openssh-server 與 openssh-client：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y openssh-server openssh-client
+```
+
+* 將 ssh 服務設定為開機後自動啟動：
+
+```bash
+sudo systemctl enable ssh
+```
+
+* 生成 ssh key：
+
+```bash
+ssh-keygen
+# 一直按 Enter 即可
+```
+
+* 修改 /etc/ssh/sshd_config，將 PermitRootLogin 設定為 yes，允許 clinnt 用 root 連進來：
+```bash
+# /etc/ssh/sshd_config：
+PermitRootLogin yes
+```
+> 如果找不到 PermitRootLogin，直接新增這行即可。
+
+* 重新啟動 ssh 服務：
+```bash
+sudo systemctl restart ssh
+```
+
+確定兩台 VM 都完成以下設定後，我們嘗試在 Master 上用 ssh 連線到 worker1：
+
+```bash
+ssh root@192.168.132.2
+```
+
+輸入密碼後即可登入。如果不想每次都輸入 IP，可以將 IP 與對應的 hostname 加入 /etc/hosts：
+```bash
+# /etc/hosts：
+192.168.132.2 worker1
+```
+
+這樣就可以直接用 hostname 連線了：
+```bash
+ssh root@worker1
+```
+
+安裝好虛擬機、設定好 IP 與 ssh 連線後，就可以開始 cluster 的建置了。
 
 ---
 
