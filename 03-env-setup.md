@@ -1,8 +1,8 @@
-# Day 03 - Basic Concept：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips
-
 ### 今日目標
 
 * 準備一個 Kubernetes cluster 做為練習環境
+  * 設定 VM 之間的 ssh 連線
+  * 使用 kubeadm 建立 cluster
 
 * Bonus Tips：
   * 設定 kubectl bash completion
@@ -42,7 +42,7 @@ kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立
 
 ### STEP 1：準備環境
 
-首先需要安裝 Virtualbox (當然你也可以選用其他虛擬機平台)，並建立至少兩台的 VM 做為 Node 來組成 cluster。
+首先需要安裝 Virtualbox (你也可以選用其他虛擬機平台)，並建立至少兩台的 VM 做為 Node 來組成 cluster。
 
 其中一台 VN 作為 Master Node，其餘的作為 Worker Node。需注意的是，每台 VM 只少需要：
 
@@ -80,6 +80,7 @@ sudo apt-get install -y openssh-server openssh-client
 * 將 ssh 服務設定為開機後自動啟動：
 
 ```bash
+sudo systectl start ssh
 sudo systemctl enable ssh
 ```
 
@@ -123,13 +124,13 @@ ssh root@worker1
 
 ---
 
-**Tips：Single node cluster**
+> **Tips**：Single node cluster
 
 其實只用一台 VM 即可建立 cluster，這樣的方式稱為「single node cluster」。
 
 如果你手頭上的資源沒有很多，就可以考慮建立 single node cluster 來當作練習環境，同樣按照下面的步驟進行建置，不過要注意做完「STEP 5」後，**不須操作**「*STEP 6 : 加入worker node*」，直接跳到「*STEP 7 : 安裝 Pod network*」，最後記得看「Tips 4: Single node cluster」。
 
-> 記不住沒關係，底下如果遇到需要 single node cluster 的情況，會再次提醒！
+(記不住沒關係，底下如果遇到需要 single node cluster 的情況，會再次提醒！)
 
 
 ### STEP 2：安裝 container runtime
@@ -410,7 +411,7 @@ kubectl get nodes
 
 ### STEP 7：安裝Pod network
 
-為了讓 cluster 中的 Pod 可以彼此溝通，我們需要安裝 **CNI**(Container Network Interface) 來部署 Pod network，可參考[官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)選則 CNI。
+為了讓 cluster 中的 Pod 可以彼此溝通，我們需要安裝 **CNI** (Container Network Interface) 來部署 Pod network，可參考[官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)選則 CNI。
 
 常見的 CNIs 例如 flannel、calico 等。這裡兩種安裝方式都會介紹：
 
@@ -570,6 +571,7 @@ sudo crictl logs <container-id>
 ```bash
 kubectl describe node | grep -i taint
 ```
+輸出：
 ```text
 Taints:             node-role.kubernetes.io/control-plane:NoSchedule
 ```
@@ -632,12 +634,14 @@ sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*
 sudo apt-get autoremove
 ```
 
-## 今日小結
+### 今日小結
 
 今天提供了兩種方式來建置練習環境。如果只是想練習一些基本操作，那 playground 應該就足夠了。但如果是練習多節點的操作，或想更全面的了解 cluster，那麼使用 kubeadm 來建置 cluster 對於初學者來說是一個不錯的選擇。
 
+建置好練習用的 cluster 後，我們明天就來看看 Pod 的相關概念及操作。
 
-## 參考資料
+---
+**參考資料**
 
 * [Create a Kubernetes Cluster using Virtualbox — The Hard Way](https://medium.com/@mojabi.rafi/create-a-kubernetes-cluster-using-virtualbox-and-without-vagrant-90a14d791617)
 
