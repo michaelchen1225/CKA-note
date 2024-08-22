@@ -333,7 +333,7 @@ kubectl get pod busybox -o jsonpath='{.status.podIP}'
 ---
 > **Tips：jsonpath**
 
-有關 jsonpath 的應用可參考附錄。
+有關 jsonpath 的應用可參考[附錄](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/%E9%99%84%E9%8C%841-jsonpath.md)。
 ***
 
 ### Pod 的基本除錯
