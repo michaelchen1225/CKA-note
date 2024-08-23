@@ -299,11 +299,11 @@ kubectl exec <pod-name> -- <command> <arg1> <arg2> ... <argN>
 kubectl exec busybox -- echo hello
 ```
 
-在執行中的 Pod 裡開啟可互動的 shell
+使用終端與 Pod 中的容器進行互動：
 ```bash
 kubectl exec -it <pod-name> -- /bin/sh
 ```
-> **範例**：在剛剛建立的 busybox Pod 裡開啟 sh shell
+> **範例**：使用 sh shell 與剛剛建立的 busybox 互動
 
 ```bash
 kubectl exec -it busybox -- /bin/sh
@@ -648,6 +648,8 @@ kubectl logs -f sidecar-demo -c sidecar-container
 ### 今日小結
 
 今天介紹了 Pod 的一些基本操作，建議讀者將每個指令與操作都實際操作一遍，熟悉一遍後不妨試試看能不能自己還原出 initContainer 與 sidecar 的實作，如果可以的話相信對今天內容就有一定的掌握了！
+
+另外，如果對 kubectl 的指令不熟的話，可以到官網查詢，或是在指令後加上 --help 或 -h 來查看該指令的使用方式。
 
 -----
 **參考資料**
