@@ -14,3 +14,5 @@
 [Day 03 -【Basic Concept】：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips](https://ithelp.ithome.com.tw/articles/10345660)
 
 [Day 04 -【Basic Concept】：Pod](https://ithelp.ithome.com.tw/articles/10345796)
+
+[Day 05 -【Basic Concept】：Pod 中的環境變數與指令](https://ithelp.ithome.com.tw/articles/10345967)

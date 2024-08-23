@@ -153,7 +153,7 @@ CMD ["echo", "1"]
 > 如果沒有安裝 docker，先把 docker 安裝好：
 ```bash
 sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli
+sudo apt-get install -y docker-ce docker-ce-cli
 ```
 
 把器跑起來並命名為 echo-1：
