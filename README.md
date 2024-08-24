@@ -16,3 +16,5 @@
 [Day 04 -【Basic Concept】：Pod](https://ithelp.ithome.com.tw/articles/10345796)
 
 [Day 05 -【Basic Concept】：Pod 中的環境變數與指令](https://ithelp.ithome.com.tw/articles/10345967)
+
+[Day 06 -【Basic Concept】：ReplicaSet、Deployment & StatefulSet](https://ithelp.ithome.com.tw/articles/10346089)
