@@ -651,7 +651,7 @@ node01    Ready    <none>          22d   v1.31.0   10.0.2.15
 ```
 > 可以看到 INTERNAL-IP 都為 10.0.2.15 
 
-如果沒有修改，日後可能會遇到一些錯誤，因此請照以下步驟修改：
+如果沒有修改，日後可能會遇到一些錯誤，例如明明 Pod 有跑起來，但 kubectl exec 卻找不到的情況。因此請照以下步驟修改：
 
 
 * 在 Master Node 上，修改 /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf：
@@ -659,7 +659,7 @@ node01    Ready    <none>          22d   v1.31.0   10.0.2.15
 vim /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
 ```
 
-* 因為上面將 Master Node 的 IP 設為 192.168.132.1，因此需要把「--node-ip=192.168.132.1」加在最後一行：
+* 因為 STEP 1 將 Master Node 的 IP 設為 192.168.132.1，因此需要把「--node-ip=192.168.132.1」加在最後一行：
 ```bash
 # Note: This dropin only works with kubeadm and kubelet v1.11+
 [Service]
@@ -688,16 +688,7 @@ vim /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
 
 * 因為上面將 node01 的 IP 設為 192.168.132.2，因此需要把「--node-ip=192.168.132.2」加在最後一行：
 ```bash
-# Note: This dropin only works with kubeadm and kubelet v1.11+
-[Service]
-Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
-Environment="KUBELET_CONFIG_ARGS=--config=/var/lib/kubelet/config.yaml"
-# This is a file that "kubeadm init" and "kubeadm join" generates at runtime, populating the KUBELET_KUBEADM_ARGS variable dynamically
-EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
-# This is a file that the user can use for overrides of the kubelet args as a last resort. Preferably, the user should use
-# the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
-EnvironmentFile=-/etc/default/kubelet
-ExecStart=
+...(省略)
 ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --node-ip=192.168.132.2
 ```
 
@@ -723,7 +714,6 @@ node01    Ready    <none>          22d   v1.31.0   192.168.132.2
 今天提供了兩種方式來建置練習環境。如果只是想練習一些基本操作，那 playground 應該就足夠了。但如果是練習多節點的操作，或想更全面的了解 cluster，那麼使用 kubeadm 來建置 cluster 對於初學者來說是一個不錯的選擇。
 
 建置好練習用的 cluster 後，我們明天就來看看 Pod 的相關概念及操作。
-
 
 
 ---

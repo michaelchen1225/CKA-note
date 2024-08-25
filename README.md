@@ -1,6 +1,6 @@
 # 入門 Kubernetes 到考取 CKA 證照
 
-文章也同步在「 IT 邦幫忙 2024 鐵人賽」中，GitHub 除了會同步更新外，附錄的部分會在 GitHub 上更新 
+文章也同步在「 IT 邦幫忙 2024 鐵人賽」中，GitHub 除了會同步更新外，附錄的部分會在 GitHub 上更新。
 
 * [系列文章連結](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)
 
@@ -18,3 +18,5 @@
 [Day 05 -【Basic Concept】：Pod 中的環境變數與指令](https://ithelp.ithome.com.tw/articles/10345967)
 
 [Day 06 -【Basic Concept】：ReplicaSet、Deployment & StatefulSet](https://ithelp.ithome.com.tw/articles/10346089)
+
+[Day 07 -【Basic Concept】：Rolling Update & Rollback](https://ithelp.ithome.com.tw/articles/10346223)
