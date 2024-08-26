@@ -1,4 +1,4 @@
-# Day 03 - Basic Concept：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips
+# Day 03 -【Basic Concept】：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips
 
 ### 今日目標
 

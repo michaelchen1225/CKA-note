@@ -20,3 +20,5 @@
 [Day 06 -【Basic Concept】：ReplicaSet、Deployment & StatefulSet](https://ithelp.ithome.com.tw/articles/10346089)
 
 [Day 07 -【Basic Concept】：Rolling Update & Rollback](https://ithelp.ithome.com.tw/articles/10346223)
+
+[Day 08 -【Basic Concept】：Namespace](https://ithelp.ithome.com.tw/articles/10346374)
