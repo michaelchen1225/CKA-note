@@ -395,6 +395,8 @@ helm repo remove <repo-name>
 
 ### Helm 的基本指令彙整
 
+> 以下將 helm 的常用指令彙整，方便日後查詢：
+
 初始化一個 Chart，生成基本的目錄結構：
 ```bash
 helm create <chart-name>
