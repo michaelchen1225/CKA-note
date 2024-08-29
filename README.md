@@ -25,3 +25,6 @@
 
 [Day 09 -【Basic Concept】：Service](https://ithelp.ithome.com.tw/articles/10346530)
 
+[Day 10 -【Basic Concept】：kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
+
+[Day 11 -【Basic Concept】：Helm](https://ithelp.ithome.com.tw/articles/10346850)
