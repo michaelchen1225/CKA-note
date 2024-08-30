@@ -28,3 +28,5 @@
 [Day 10 -【Basic Concept】：kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
 
 [Day 11 -【Basic Concept】：Helm](https://ithelp.ithome.com.tw/articles/10346850)
+
+[Day 12 -【Storage】：ConfigMap & Secret](https://ithelp.ithome.com.tw/articles/10347004)
