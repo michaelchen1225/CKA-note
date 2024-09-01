@@ -7,6 +7,8 @@
 
 ## 目錄
 
+### Basic Concept：Day 1 ~ Day 11
+
 [Day 01 - Kubernetes 簡介與鐵人賽規劃](https://ithelp.ithome.com.tw/articles/10344706)
 
 [Day 02 -【Basic Concept】：Kubernetes 的架構與組件](https://ithelp.ithome.com.tw/articles/10345505)
@@ -28,6 +30,8 @@
 [Day 10 -【Basic Concept】：kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
 
 [Day 11 -【Basic Concept】：Helm](https://ithelp.ithome.com.tw/articles/10346850)
+
+### Storage：Day 12 ~ Day 14
 
 [Day 12 -【Storage】：ConfigMap & Secret](https://ithelp.ithome.com.tw/articles/10347004)
 
