@@ -11,7 +11,7 @@
 
 上個章節介紹了 volume，但如果我們只是單純的使用 volume 會有以下幾個缺點：
 
-  * volume 的生命週期和 Pod 是一樣的，當 Pod 被刪除時，volume 也會被刪除。
+  * Volume 的生命週期和 Pod 是一樣的，當 Pod 被刪除時，volume 也會被刪除。
   
   * 假如定義了 hostPath，當 Pod 轉移到另一個 Node 上時，我們無法保證新的 Node 上也有同樣的「hostPath」，可能造成 Pod 讀不到資料。
 
@@ -33,6 +33,7 @@
 
 而 StorageClass 可以讓 PV 的配置更加方便與彈性，舉例來說，我們建立了一個屬於 storageClass「A」的 PVC 時，管理者不用像以前一樣手動建立 PV，因為 storageClass 「A」看到新的 PVC 後就會自動建立相對應的 PV。
 
+不過，PV 與 PVC 皆無法使用 `kubectl create` 直接建立，所以底下我們得先了解兩者的 yaml 寫法。 
 
 ### PV 與 PVC 的 yaml 格式
 
@@ -459,6 +460,8 @@ testing local pv
 
 ### NFS StorageClass (Optional)
 
+> 以下實作如果在 killercoda 上執行，可能會遇到一些權限問題，建議在自己的虛擬機上操錯。
+
 前面雖然建立了一個 local-storage 的 storageClass，但由於使用「kubernetes.io/no-provisioner」作為 provisioner，因此只能達到「分類」、延遲綁定的效果，它只是一個「邏輯上」的 storageClass，並不能像前面介紹的那樣自動建立 PV。
 
 因此這裡我們來實際建立一個功能完整的 storageClass：使用 nfs 作為 storageClass 的 provisioner。
@@ -501,6 +504,7 @@ sudo systemctl unmask nfs-common
 ```bash
 file /lib/systemd/system/nfs-common.service
 ```
+輸出：
 ```text
 /lib/systemd/system/nfs-common.service: symbolic link to /dev/null
 ```
@@ -509,7 +513,7 @@ file /lib/systemd/system/nfs-common.service
 ```bash
 sudo rm /lib/systemd/system/nfs-common.service
 sudo systemctl daemon-reload
-sudo systemctl start nfs-common
+sudo systemctl restart nfs-common
 ```
 最終要確定 nfs-common 是 active (running) 狀態：
 ```bash
@@ -527,28 +531,30 @@ systemctl status nfs-common
 ```bash
 sudo mkdir -p /data/k8s
 sudo chown nobody:nogroup /data/k8s
-sudo chmod 666 /data/k8s
+sudo chmod 777 /data/k8s
 ```
 
 * 查看主機所在網域：
 ```bash
 hostname -I
 ```
+輸出：
 ```text
-172.30.1.2 172.17.0.1 192.168.0.0 
+192.168.132.1
 ```
 
 * 將要分享的目錄加入到「/etc/exports」：
 ```bash
-echo -e "/data/k8s\t172.30.1.0/24(rw,sync,no_subtree_check,no_root_squash)" | sudo tee -a /etc/exports
+echo -e "/data/k8s\t192.168.132.0/24(rw,sync,no_subtree_check,no_root_squash)" | sudo tee -a /etc/exports
 ```
 
 * 分享目錄：
 ```bash
 sudo exportfs -av
 ```
+輸出：
 ```text
-exporting 172.30.1.0/24:/data/k8s
+exporting 192.168.132.0/24:/data/k8s
 ```
 
 * 重啟 nfs server：
@@ -562,7 +568,7 @@ showmount -e localhost
 ```
 ```text
 Export list for localhost:
-/data/k8s 172.30.1.0/24
+/data/k8s 192.168.132.0/24
 ```
 
 測試一下分享目錄的效果：
@@ -574,7 +580,7 @@ sudo mkdir -p /mnt/nfs
 
 * 掛載分享目錄：
 ```bash
-sudo mount 172.30.1.2:/data/k8s /mnt/nfs
+sudo mount 192.168.132.1:/data/k8s /mnt/nfs
 ```
 
 * 建立一個檔案到分享目錄：
@@ -611,7 +617,7 @@ helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/
 * 安裝 nfs-subdir-external-provisioner：
 ```bash
 helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
-    --set nfs.server=172.30.1.2 \
+    --set nfs.server=192.168.132.1 \
     --set nfs.path=/data/k8s \
     --set storageClass.name=nfs-storage
 ```
@@ -641,6 +647,7 @@ kubectl get po | grep nfs
 NAME                                           	   READY   STATUS 	 RESTARTS   AGE
 nfs-subdir-external-provisioner-6444d75b85-56sts   1/1 	   Running   0      	17m
 ```
+> 如果一直卡在 ContainerCreating，可以嘗試重新安裝 nfs-subdir-external-provisioner
 
 * 建立一個 PVC：
 ```yaml
@@ -678,7 +685,7 @@ test-pvc   Bound	test-pv                                	   500Mi  	  RWO       
 test-sc	   Bound	pvc-b5e66f93-7c2e-4d8b-84af-c507bf2f0829   100Mi  	  RWO        	 nfs-storage	<unset>             	2s
 ```
 
-* 刪除 PVC:
+* 刪除 PVC：
 ```bash
 kubectl delete pvc test-sc
 ```
@@ -692,19 +699,13 @@ NAME  	  CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM          	STO
 test-pv   500Mi  	 RWO        	Retain       	 Bound	  default/test-pvc  just-test  	   <unset>                      	20m
 ```
 
-這就是 storageClass 的效果: 使用者只需要建立 PVC，storageClass 會負責管理 PV 的建立與刪除。
+這就是 storageClass 的完整效果：使用者只需要建立 PVC，storageClass 會負責管理 PV 的建立與刪除。
 
 ### 今日小結
 
-今天我們學習了 PV、PVC 和 storageClass 的使用，透過這些概念，我們可以更方便的管理 Pod 的儲存空間。
+今天我們介紹了 PV、PVC 和 storageClass 的使用，PV 與 PVC 能把儲存空間從 Pod 獨立出來，在資料可以持續保存的情況下，讓 Pod 能夠更加靈活的使用儲存空間。而 storageClass 則能會自動管理 PV 的建立與刪除，讓我們只需建立 PVC，就能拿到儲存空間與達到「分類」管理的效果。
 
-
-以下為考試時可能用到的查詢關鍵字整理:
-
-目標 | 關鍵字 | 文件
------|--------|------
-在 Pod 中掛載 PVC | pv in pod | [Configure a Pod to Use a PersistentVolume for Storage](https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/)
-local PV | pv | [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) -> 搜尋 Local
+今天就是「Storage」章節的最後一篇，明天我們將進入「Workloads & Scheduling」章節，來談談該如何調度 Pod 以及資源管理。
 
 -----
 **參考資料**
@@ -724,3 +725,4 @@ local PV | pv | [Persistent Volumes](https://kubernetes.io/docs/concepts/storage
 [透過 NFS Server 在 K3s cluster 新增 Storage Class](https://zhengwei-liu.medium.com/%E9%80%8F%E9%81%8E-nfs-server-%E5%9C%A8-k3s-cluster-%E6%96%B0%E5%A2%9E-storage-class-eeae09141005)
 
 [解决nfs-common.service is masked 问题](https://zhuanlan.zhihu.com/p/469398833)
+

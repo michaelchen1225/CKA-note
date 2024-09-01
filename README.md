@@ -32,3 +32,5 @@
 [Day 12 -【Storage】：ConfigMap & Secret](https://ithelp.ithome.com.tw/articles/10347004)
 
 [Day 13 -【Storage】：Volume 的三種基本應用 --- emptyDir、hostPath、configMap & secret](https://ithelp.ithome.com.tw/articles/10347182)
+
+[Day 14 -【Storage】： PV、PVC & StorageClass](https://ithelp.ithome.com.tw/articles/10347335)
