@@ -647,7 +647,7 @@ kubectl get po | grep nfs
 NAME                                           	   READY   STATUS 	 RESTARTS   AGE
 nfs-subdir-external-provisioner-6444d75b85-56sts   1/1 	   Running   0      	17m
 ```
-> 如果一直卡在 ContainerCreating，可以嘗試重新安裝 nfs-subdir-external-provisioner
+> 如果一直卡在 ContainerCreating，但沒有 Error 的 events，可以嘗試重新安裝 nfs-subdir-external-provisioner。如果還是不行，卡在了掛載相關的錯誤，請確認每台 Node 上的 nfs-common 為 active 的狀態。
 
 * 建立一個 PVC：
 ```yaml

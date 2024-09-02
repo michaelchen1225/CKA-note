@@ -38,3 +38,7 @@
 [Day 13 -【Storage】：Volume 的三種基本應用 --- emptyDir、hostPath、configMap & secret](https://ithelp.ithome.com.tw/articles/10347182)
 
 [Day 14 -【Storage】： PV、PVC & StorageClass](https://ithelp.ithome.com.tw/articles/10347335)
+
+### Workloads & Scheduling
+
+[Day 15 -【Workloads & Scheduling】：Manual Scheduling(上)：nodeName & nodeSelector](https://ithelp.ithome.com.tw/articles/10347495)
