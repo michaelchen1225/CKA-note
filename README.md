@@ -1,3 +1,5 @@
+> 2024 iThome 鐵人賽系列文章：【[入門 Kubernetes 到考取 CKA 證照](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)】
+
 ### 前言
 
 讓我們從「雲原生 (Cloud Native)」開始談起。
