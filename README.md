@@ -1,4 +1,4 @@
-> 2024 iThome 鐵人賽系列文章：【[入門 Kubernetes 到考取 CKA 證照](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)】
+# 2024 iThome 鐵人賽系列文章：【[入門 Kubernetes 到考取 CKA 證照](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)】
 
 ### 前言
 
