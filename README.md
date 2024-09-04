@@ -44,3 +44,5 @@
 [Day 15 -【Workloads & Scheduling】：Manual Scheduling(上)：nodeName & nodeSelector](https://ithelp.ithome.com.tw/articles/10347495)
 
 [Day 16 -【Workloads & Scheduling】：Manual Scheduling(下)：Affinity & Taint](https://ithelp.ithome.com.tw/articles/10347661)
+
+[Day 17-【Workloads & Scheduling】：Static Pod & DaemonSet](https://ithelp.ithome.com.tw/articles/10347876)
