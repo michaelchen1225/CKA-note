@@ -1,5 +1,3 @@
-# Day 03 -【Basic Concept】：使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips
-
 ### 今日目標
 
 * 準備一個 Kubernetes cluster 做為練習環境
@@ -29,7 +27,7 @@
 
 ### 方法二 : kubeadm
 
-但使用 playground 的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的 cluster，可以使用「kubeadm」進行建置。
+但使用 playground 的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的 cluster，可以使用「kubeadm」進行建置。此外，使用 kubeadm 建立 cluster 能讓你對整個 cluster 的架構有更清晰的認識。
 
 kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立一個 cluster，並且可以直接在本地端進行操作。以下將以 Virtualbox 為例，用 kubeadm 建立一個 cluster。
 
@@ -189,7 +187,7 @@ rm -f crictl-$VERSION-linux-amd64.tar.gz
 sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```
 
-> > **補充**：containerd 和 Docker 的關係可以參考[這裡](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)，兩者之區別可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
+> **補充**：containerd 和 Docker 的關係可以參考[這裡](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)，兩者之區別可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
 
 安裝 containerd 與 crictl 後，需要將 cgroup-driver 設定為 k8s cluster 所需的 **systemd**：
 
@@ -329,7 +327,7 @@ EOF
 sudo sysctl --system
 ```
 
-* 確認模組是否載入成功:
+* 確認模組是否載入成功：
 
 ```bash
 lsmod | grep br_netfilter
@@ -357,7 +355,7 @@ sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane
 > Pod IP範圍(--pod-network-cidr)的相關含意將會在「Service & Networking」的章節中提到。
 
 
-初始化後，會出現類似以下的訊息:
+初始化後，會出現類似以下的訊息：
 
 ```text
 Your Kubernetes control-plane has initialized successfully!
@@ -565,7 +563,7 @@ sudo crictl logs <container-id>
 
 在預設中，k8s 為了讓 Master Node 與 Worker Node 各司其職，所以在 Master Node 上有「不能執行 Pod」的限制，這種限制稱為「taint」。
 
-> 關於 taint 將會在後續的章節中介紹。
+> 關於 taint 的相關概念，有興趣的話可以先看「[Day 16](https://ithelp.ithome.com.tw/articles/10347661)」。
 
 但是 single node cluster 的情況下，Master Node 需要同時肩負 worker node 的工作，所以需要移除 taint：
 
@@ -593,7 +591,7 @@ kubectl get pods -w
 
 看到 Pod 的狀態變成 Running，就代表 single node cluster 建置完成了。
 
-> 以上所有的 kubectl 操作都會在後續文章中陸續介紹。
+> 以上所有的 kubectl 操作都會在後續文章中陸續介紹。關於 kubectl 的操作彙整，可以先參考 [Day 10](https://ithelp.ithome.com.tw/articles/10346691)。
 
 ### Tips 5：移除 cluster 中的 Worker Node
 
@@ -637,9 +635,9 @@ sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*
 sudo apt-get autoremove
 ```
 
-**提醒：使用 Virtualbox，發現 kubelet 抓到的 Node IP 相同**
+**重要提醒：使用 Virtualbox，發現 kubelet 抓到的 Node IP 相同**
 
-如果是使用 Virtualbox 安裝環境，可能會遇到 kubelet 抓到的 Node 的 INTERNAL-IP  相同的情況，例如：
+如果是使用 Virtualbox 安裝環境，在每台 VM 都有 NAT 網卡的情況下，可能會遇到 kubelet 抓到的 Node 的 INTERNAL-IP  相同的情況，例如：
 ```bash
 kubectl get node -o wide
 ```
@@ -671,7 +669,7 @@ EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
 # the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
 EnvironmentFile=-/etc/default/kubelet
 ExecStart=
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --node-ip=192.168.132.1
+ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --node-ip=192.168.132.1 # 改這裡
 ```
 
 * 重啟 kubelet：
@@ -686,10 +684,10 @@ ssh node01
 vim /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
 ```
 
-* 因為上面將 node01 的 IP 設為 192.168.132.2，因此需要把「--node-ip=192.168.132.2」加在最後一行：
+* 因為 STEP 1 將 node01 的 IP 設為 192.168.132.2，因此需要把「--node-ip=192.168.132.2」加在最後一行：
 ```bash
 ...(省略)
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --node-ip=192.168.132.2
+ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS --node-ip=192.168.132.2 # 改這裡
 ```
 
 * 重啟 kubelet：
@@ -715,6 +713,7 @@ node01    Ready    <none>          22d   v1.31.0   192.168.132.2
 
 建置好練習用的 cluster 後，我們明天就來看看 Pod 的相關概念及操作。
 
+> 另外，文章也會在 [Github](https://github.com/michaelchen1225/CKA-note/tree/main) 上同步更新，後續相關的附錄也會放在 Github 上進行補充 ~
 
 ---
 **參考資料**

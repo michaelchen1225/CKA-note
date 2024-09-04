@@ -42,15 +42,52 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 ### 文章架構與規劃
 
+在開始閱讀文章之前，以下三項技能建議先點起來：
+
+* **Linux 基本操作能力**：cd、ls、chmod、grep、mkdir、tail、curl、systemctl、grep、awk、標準化輸出、管線等等的基本指令與操作就不多提了，重點是要熟悉 vim 的操作方式，例如游標移動、新增行數、回到上一步(undo)、存檔退出等等，因為你將會有許多時間在編輯 yaml，熟悉 vim 能夠讓你輕鬆許多。
+
+* **了解基本的容器概念**：至少要知道容器的基本概念，如果真的沒有概念，這裡提供三個步驟入門：1. 了解「為何需要容器？」、2. 自己打包一個 image、3. 將打包好的 image 變成容器跑起來。這裡提供一個相當不錯的影片教學：「[30 分鐘 Docker 入門教程](https://www.youtube.com/watch?v=Ozb9mZg7MVM)」。
+
+* **網路的基本概念**：例如 IP、Port、DNS、路由規則等等，可以去網路上找一篇講網路概論的文章補齊，簡單了解即可。
+
+> 以上三點每項的學習成本大約 0.5 ~ 1.5 小時左右，就是了解最基本的即可~
+
 系列的開頭將會從 K8s 的基礎概念開始介紹，中間則會以 CKA 五大考試領域為章節，搭配實作來介紹不同的重點概念，最後在結尾分享 CKA 的考試技巧與心得，另外也將提供附錄做額外補充。
 
 因此，章節的劃分大致規劃如下：
 
-1. **Basic concept**：K8s 基本的概念，例如 Pod、Deployment、Service、Namespace、Label、Rolling update 等等。
+1. **Basic concept**：K8s 基本的概念，例如 Pod、Deployment、Service、Namespace、Label、Rolling update 等等。目前本章已更新完畢：
 
-2. **Storage**：K8s 中的儲存概念，例如 ConfigMap、Secret、Volume、PV、PVC、StorageClass。
+| 天數 | 主題|
+| --- | --- |
+| Day 02 |[Kubernetes 的架構與組件](https://ithelp.ithome.com.tw/articles/10345505)
+| Day 03 |[使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips](https://ithelp.ithome.com.tw/articles/10345660)
+| Day 04 |[Pod](https://ithelp.ithome.com.tw/articles/10345796)
+| Day 05 |[Pod 中的環境變數與指令](https://ithelp.ithome.com.tw/articles/10345967)
+| Day 06 |[ReplicaSet、Deployment & StatefulSet](https://ithelp.ithome.com.tw/articles/10346089)
+| Day 07 |[Rolling Update & Rollback](https://ithelp.ithome.com.tw/articles/10346223)
+| Day 08 |[Namespace](https://ithelp.ithome.com.tw/articles/10346374)
+| Day 09 |[Service](https://ithelp.ithome.com.tw/articles/10346530)
+| Day 10 |[kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
+| Day 11 |[好用的專案部署工具 --- Helm](https://ithelp.ithome.com.tw/articles/10346850)
 
-3. **Workloads & Scheduling**：K8s 中有工作附載、調度等概念，例如資源分配、Pod scheduling 的策略、Deployment 的部署策略。
+2. **Storage**：K8s 中的儲存概念，例如 ConfigMap、Secret、Volume、PV、PVC、StorageClass。目前本章已更新完畢：
+
+| 天數 | 主題|
+| --- | --- |
+| Day 12 |[ConfigMap & Secret](https://ithelp.ithome.com.tw/articles/10347004)
+| Day 13 |[Volume 的三種基本應用 --- emptyDir、hostPath、configMap & secret](https://ithelp.ithome.com.tw/articles/10347182)
+| Day 14 |[PV、PVC & StorageClass](https://ithelp.ithome.com.tw/articles/10347335)
+
+
+3. **Workloads & Scheduling**：K8s 中有工作附載、調度等概念，例如資源分配、Pod scheduling 的策略、Deployment 的部署策略。目前更新：
+
+| 天數 | 主題|
+| --- | --- |
+| Day 15 |[Manual Scheduling(上)：nodeName & nodeSelector](https://ithelp.ithome.com.tw/articles/10347495)
+| Day 16 |[Manual Scheduling(下)：Affinity & Taint](https://ithelp.ithome.com.tw/articles/10347661)
+| Day 17 |[Static Pod & DaemonSet](https://ithelp.ithome.com.tw/articles/10347876)
+
 
 4. **Services & Networking**：K8s 中的基本網路概念以及應用，例如 TLS 管理、Ingress、Network Policy。
 
@@ -61,14 +98,6 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 在文章的內容方面，系列的章節雖然以 CKA 的考試領域來劃分，但仍會提及 CKA 考試範圍之外的概念與相關實作，希望能盡可能涵蓋到 K8s 的基礎概念。
 
 而文章的具體架構大致上會先介紹今天的學習目標，再進行概念介紹與實作，最後進行總結。
-
-不過在開始閱讀文章之前，讀者至少需具備：
-
-* **Linux 基本操作能力**：cd、ls、chmod、grep、mkdir、tail、curl、systemctl、grep、awk、標準化輸出、管線等等的基本指令與操作就不多提了，重點是要熟悉 vim 的操作方式，例如游標移動、新增行數、回到上一步(undo)、存檔退出等等，因為你將會有許多時間在編輯 yaml，熟悉 vim 能夠讓你輕鬆許多。
-
-* **了解基本的容器概念**：至少要知道容器的基本概念，例如如何打包一個 image、如何部署一個容器等等。如果真的沒有容器的概念，到 YouTube 上找幾個影片先入門即可。
-
-* **網路的基本概念**：例如 IP、Port、DNS、路由規則等等，如果沒有這些概念的話可以去網路上找一些相關文章來補齊，不然當後續介紹 K8s 的網路概念時會相當吃力。
 
 ### CKA 簡介
 

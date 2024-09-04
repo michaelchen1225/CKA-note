@@ -1,5 +1,3 @@
-# Day 02 - Basic Concept：Kubernetes 的架構與組件
-
 ### 今日目標
 
 * 了解 Kubernetes 的基本執行單位 --- Pod
@@ -57,7 +55,7 @@
 
 2. **Container Runtime**
 
-   在 Pod 中執行的容器，都需要容器的「執行引擎」才能跑起來，這就是「container runtime」，常見的有 : Containerd、CRI-O 等。
+   在 Pod 中執行的容器，都需要容器的「執行引擎」才能跑起來，這就是「container runtime」，常見的有Containerd、CRI-O 等。
 
 > 常聽到的 Docker 並不是 Container Runtime，而是「包含」著 Container Runtime 的容器管理工具，兩者間的關係可以參考[這篇文章](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)
 
@@ -145,7 +143,7 @@ HA cluster 擁有**多個** Master Node，避免單點故障的情況發生。�
 
 > 總之，成本與風險之間的考量決定了我們選擇哪一種 topology。
 
-你可能會好奇，為什麼兩種 topology都至少需要**三**個 etcd，而不是兩個、四個？這是K8s 採取了 **RAFT** 演算法來保證 etcd 的高可用性與資料一致性，該演算法會從 N 個 etcd 中選出一個作為 Leader 選舉過程大致如下：
+你可能會好奇，為什麼兩種 topology都至少需要**三**個 etcd，而不是兩個、四個或其他數字？這是因為 K8s 採取了 **RAFT** 演算法來保證 etcd 的高可用性與資料一致性，該演算法會從 N 個 etcd 中選出一個作為 Leader，選舉過程大致如下：
 
 1. 在沒有 Leader 的情況下，每個 etcd 都是 Candidate(候選人)。
 
@@ -169,7 +167,7 @@ HA cluster 擁有**多個** Master Node，避免單點故障的情況發生。�
 
 3. Follower 收到指令後，將指令寫入 log 中，並向 Leader 回覆確認。
 
-4. 當 Leader 收到「大多數」，也就是「**(N/2) + 1**」個 Follower 的確認後，Leader 才會執行該寫入指令，並向使用者回覆確認。反之，若 Leader 收到的確認數量小於「**(N/2) + 1**」，則該指令則失效，無法進行資料同步！
+4. 當 Leader 收到「大多數」，也就是「**(N/2) + 1**」個 Follower 的確認後，Leader 才會執行該寫入指令，並向使用者回覆確認。反之，若 Leader 收到的確認數量小於「**(N/2) + 1**」，則該指令失效，無法進行資料同步！
 
 在這樣的情況下，若 etcd 的個數為偶數，就算只損失一個 etcd，在寫入資料時就不可能滿足「步驟四」的條件，所以 etcd 的個數必須為大於 1 的奇數，通常會以 3 ~ 5 個 Master 來設計 HA cluster。
 
