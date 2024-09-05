@@ -57,6 +57,8 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 因此，章節的劃分大致規劃如下：
 
+> 註：「*」為 *CKA Optional*，如果是專攻 CKA 的讀者，可以先跳過這個部分，後面有興趣再回來看(例如 helm)。
+
 1. **Basic concept**：K8s 基本的概念，例如 Pod、Deployment、Service、Namespace、Label、Rolling update 等等。目前本章已更新完畢：
 
 | 天數 | 主題|
@@ -70,7 +72,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 08 |[Namespace](https://ithelp.ithome.com.tw/articles/10346374)
 | Day 09 |[Service](https://ithelp.ithome.com.tw/articles/10346530)
 | Day 10 |[kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
-| Day 11 |[好用的專案部署工具 --- Helm](https://ithelp.ithome.com.tw/articles/10346850)
+| Day 11 |[*好用的專案部署工具 --- Helm](https://ithelp.ithome.com.tw/articles/10346850)
 
 2. **Storage**：K8s 中的儲存概念，例如 ConfigMap、Secret、Volume、PV、PVC、StorageClass。目前本章已更新完畢：
 
@@ -87,7 +89,8 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | --- | --- |
 | Day 15 |[Manual Scheduling(上)：nodeName & nodeSelector](https://ithelp.ithome.com.tw/articles/10347495)
 | Day 16 |[Manual Scheduling(下)：Affinity & Taint](https://ithelp.ithome.com.tw/articles/10347661)
-| Day 17 |[：Static Pod & DaemonSet](https://ithelp.ithome.com.tw/articles/10347876)
+| Day 17 |[Static Pod & DaemonSet](https://ithelp.ithome.com.tw/articles/10347876)
+| Day 18 |[*進階部署策略：Blue-Green & Canary](https://ithelp.ithome.com.tw/articles/10348066)
 
 
 4. **Services & Networking**：K8s 中的基本網路概念以及應用，例如 TLS 管理、Ingress、Network Policy。

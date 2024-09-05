@@ -1,9 +1,8 @@
-# Day 07 -【Basic Concept】：Rolling Update & Rollback
-
 ### 今日目標
 
 * Deployment 的 Update Strategy
   * Recreate vs Rolling Update
+  * Rolling Update 的進階設定：minReadySeconds、maxSurge、maxUnavailable
 
 * Rollout history
   * 標記 CHANGE-CAUSE：註解每次更新的原因
@@ -14,13 +13,17 @@
 
 ### Update Strategy
 
-當一個 Deployment 需要更新時，你可以考慮 k8s 中兩種常見的更新策略：
+當一個 Deployment 需要更新時，你可以考慮兩種最基本的更新策略：
 
   * **Recreate**：一次性的刪除所有舊的 Pod ，然後建立新的 Pod。這種方式會導致服務中斷(downtime)。
 
   * **Rolling Update**: 逐一更新舊的 Pod，一個更新好了才換下一個，直到最後所有的 Pod 都更新完成。這種方式不會導致服務的中斷，因為一個 Pod 在更新時，其他 Pod 還是能被存取到，這就是所謂的 **zero-downtime**。
 
 以上兩種策略皆可在 Deployment 的 yaml「spec.strategy.type」欄位中指定，不指定預設值為 RollingUpdate。
+
+> 因為目前的章節為「Basic Concept」，所以今天先介紹最基礎的更新策略，讓大家初步體驗「Update」的感覺。
+
+> 較為進階的部署策略，例如「**藍綠部署**(blue-green Deployment)」、「**金絲雀部署**(Canary Deployment)」，會在「Workloads & Scheduling」的章節中，也就是 [Day 18](https://ithelp.ithome.com.tw/articles/10348066) 來介紹。
 
 ### Rolling Update
 
@@ -198,6 +201,64 @@ nginx-7854ff8877-lx4rg   1/1     Running             0          1s
 
 ***
 
+### Rolling Update 的進階設定
+
+我們還能針對 Rolling Update 的過程進行更多控制：
+
+```yaml
+spec:
+  minReadySeconds: <N>
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: <X>
+      maxUnavailable: <Y>
+```
+
+* **minReadySeconds**：在一個 Pod 更新後(Status 為 Ready)，預設上 k8s 會直接更新下一個 Pod，如果這時 Pod 還沒初始化完成就對外開放，部分使用者可能會無法存取服務。透過設定「minReadySeconds」，讓 Pod 在 Ready 後有 n 秒啟動或初始化的時間，然後 k8s 才會繼續更新下一個 template。
+
+* **maxSurge**：X 可以是「整數」或「%」若 X=1，表示最多容許更新過程中存在「desired number + 1」個 Pod 處於 Running 的狀態。
+
+* **maxUnavailable**：Y 可以是「整數」或「%」，但不能同時與 X 設為 0。若 Y=1，表示最多容許更新過程中存在「1」個 Pod 無法提供服務(Status 不是 Ready)。
+
+我們來看幾個例子：
+
+```yaml
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+```
+
+> 更新時，k8s 先建立 1 個 Pod，除非新 Pod 的 status 為 Ready，否則不會刪除舊的 Pod。
+
+```yaml
+spec:
+  minReadySeconds: 5
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+```
+> 更新時，k8s 先建立 1 個 Pod，並至少維持兩個 Pod 是可被存取的(status 為 Ready)。當新 Pod 的 status 為 Ready 後，需等待 5 秒才會更新下一個 Pod。 
+
+```yaml
+spec:
+  replicas: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 20%
+      maxUnavailable: 20%
+```
+
+> 更新時，k8s 最多可建立 2 個新 Pod，並且至少要維持 8 個 Pod 是可被存取的(status 為 Ready)。
+
 ### Rollout history
 
 更新後，我們可以用 kubectl rollout history 來查看更新的歷史紀錄：
@@ -217,7 +278,7 @@ REVISION  CHANGE-CAUSE
 3         <none>
 ```
 
-但是，明明總共三次rollout，為什麼只有兩次呢？
+但是，明明總共三次rollout，為什麼只看到兩次呢？
 
 這是因為 REVISION 3 實際上是回到 REVISION 1(原始版本)，所以在輸出結果中，REVISION 1被「移動」到了REVISION 3 的位置。
 
