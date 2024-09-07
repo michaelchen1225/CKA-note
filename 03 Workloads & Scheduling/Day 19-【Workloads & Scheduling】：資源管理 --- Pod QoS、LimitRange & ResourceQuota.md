@@ -5,7 +5,7 @@
   * LimitRange：限制 namespace 底下單一 Pod 的資源用量
   * ResourceQuota：限制 namespace 底下的總資源用量
 
-我們知道一個 Node 上的資源有限，當一個 Pod 占用過多的資源，或是因為資源不足而導致 Pod 無法正常運作，都是我們不樂見的。今天就來介紹一些管理資源的方式，來有效的控管、分配資源。
+我們知道一個 Node 上的資源有限，當一個 Pod 占用過多的資源，讓其他 Pod 因為資源不足而無法正常運作，是我們不樂見的。因此，今天就來介紹一些管理資源的方式，來控管、分配 cluster 中的資源。
 
 所謂「資源」，指的是 CPU 和 memory：
 
@@ -504,6 +504,8 @@ kubectl apply -f quota-pod-2.yaml
 ### 今日小結
 
 今天介紹了三種管理資源的方式: Pod QoS、LimitRange 和 ResourceQuota。我們可以用 Pod QoS 預估 Pod 的 eviction 順序，用 LimitRange 來限制新 Pod 的資源使用範圍，用 ResourceQuota 來限制 namespace 底下所有 Pod 的資源用量總和。
+
+今天是「Workloads & Scheduling」章節的最後一篇，明天我們進入下一個主題：「Service & Networking」，來聊聊 K8s 中有關網路的各種概念與操作。
 
 **參考資料**
 

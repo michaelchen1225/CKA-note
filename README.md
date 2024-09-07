@@ -96,6 +96,10 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 4. **Services & Networking**：K8s 中的基本網路概念以及應用，例如 TLS 管理、Ingress、Network Policy。
 
+| 天數 | 主題|
+| --- | --- |
+| Day 20 |[Kubernetes 的網路基本架構](https://ithelp.ithome.com.tw/articles/10348418)
+
 5. **Cluster Architecture, Installation & Configuration**：K8s cluster 的基本設定，例如備份、升級 cluster、權限管理等等。
 
 6. **Troubleshooting**：K8s 中的故障排除以及相關監控方式。
