@@ -101,6 +101,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 20 |[Kubernetes 的網路基本架構](https://ithelp.ithome.com.tw/articles/10348418)
 | Day 21 |[TLS/SSL in Kubernetes](https://ithelp.ithome.com.tw/articles/10348555)
 | Day 22 |[憑證管理與kubeconfig](https://ithelp.ithome.com.tw/articles/10348787)
+| Day 23 |[ervice 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
 
 5. **Cluster Architecture, Installation & Configuration**：K8s cluster 的基本設定，例如備份、升級 cluster、權限管理等等。
 

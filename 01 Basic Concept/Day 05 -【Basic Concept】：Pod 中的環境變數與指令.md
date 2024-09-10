@@ -76,6 +76,65 @@ kubectl run env-demo-3 --image busybox --env="USER=Mike" --env="PASSWORD=123456"
 
 不過，當需要的環境變數開始變多時這樣設定非常沒有效率，且不易閱讀。這個問題我們暫且留到後續章節，介紹 ConfigMap 時再來解決。
 
+### 將 Pod 的資訊當作環境變數
+
+當 Pod 跑起來後，我們可以將一些與 Pod 相關的變數當作環境變數，例如 Pod 的名稱、IP 等等，例如：
+
+```yaml
+# env-from-pod-info.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: env-from-pod-info
+spec:
+  containers:
+    - name: test
+      image: busybox
+      command: [ "sh", "-c", "echo $MY_NODE_NAME $MY_POD_NAME $MY_POD_NAMESPACE $MY_POD_IP" ]
+      env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName  
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+```
+```bash
+kubectl apply -f env-from-pod-info.yaml
+```
+
+> 基本上就是加入「valueFrom」，然後指定「fieldRef.fieldPath」，範例中我們依序取得：
+
+* Pod 所在的 Node 名稱
+* Pod 的名稱
+* Pod 所在的 Namespace
+* Pod 的 IP 
+
+> 如果不知道特定欄位怎麼表示，可以這樣看：
+
+```bash
+kubectl get pod <pod_name> -o yaml
+```
+建立 Pod 後，查看 logs：
+
+```bash
+kubectl logs env-from-pod-info
+```
+輸出：
+```text
+node01 env-from-pod-info default 192.168.1.9
+```
+
 
 ### Pod 中的指令 (command) 與參數 (arguments)
 
