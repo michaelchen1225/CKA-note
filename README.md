@@ -1,13 +1,19 @@
-# 2024 iThome 鐵人賽系列文章：【[入門 Kubernetes 到考取 CKA 證照](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)】
-
-
 ### 前言
+
 
 讓我們從「雲原生 (Cloud Native)」開始談起。
 
 根據 CNCF(Cloud Native Computing Foundation) 的定義，雲原生旨在讓企業能在公有、私有、混合雲的環境中，建立和執行可擴展的「應用程式」，而這些應用則以**微服務**為架構，以**容器**為基礎在雲端上執行。總之，雲原生並不是一項技術，而是一個「生態」，該生態以容器技術為核心，發展出各式各樣的服務架構與技術，而企業則在雲端環境挑選合適的技術與服務架構，部署穩定、可擴展的應用服務給使用者。
 
-那 CNCF 又是什麼來頭？CNCF 是一個由 Linux 基金會於 2015 年成立的組織，成員包括了 Google、IBM、Microsoft、AWS、Intel 等等，其宗旨為推廣雲原生技術的發展，用一句他們官網上的話來說就是：
+那為什麼最近雲原生變成了一個熱門的「buzzword」呢？這就得談談伺服器與服務架構的演進了。
+
+我們知道用程式碼把服務寫好後，會放在伺服器上執行讓使用者存取。而最初的伺服器就是一台「**實體電腦**」，但如果一堆服務都跑在一台實體伺服器上，可能會造成套件、版本、環境之間的衝突，但是幫每個服務都買一台實體機顯然不划算，因此有了「**虛擬機**」的出現。
+
+在實體電腦上*模擬*出多個虛擬機，讓每個服務都有自己的獨立環境，在具備隔離性的同時，環境的轉移也相當方便。不過虛擬機畢竟還是模擬了一整台電腦，對於服務來說有些功能根本用不到，所以虛擬機還是顯得有些肥大，所以後來就出現了**容器**，在具備「隔離性高」與「環境轉移方便」的同時，遠比虛擬機來的更加**輕量**，因為容器只需要打包「服務本身」與其「相依的執行環境」，而不需要包含整個作業系統，所以不會像虛擬機那樣肥大。以演進的方向來看，服務的執行環境正在朝著「輕量、獨立」的方向前進。
+
+而容器的出現，則讓微服務架構的實踐更加如魚得水。在以前單體式架構的時代，所有功能都寫在同一個單元，隨然開發上較方便且直覺，但一旦某個小功能出錯可能會牽連到整個服務，且除錯、新增或刪除功能、版本更新時除了會影響整個服務之外，光是單元測試就要花不少時間。而微服務架構的設計理念則是將服務中的每個小功能**獨立**出來，每個小功能彼此之間互相溝通、配合，對外看起來是一個服務整體，實際上則可以獨立的撰寫、除錯、部署、更新，並不用擔心影響到其他功能與服務本身。並且微服務架構在新增功能或刪除功能時，也不會影響到整個服務，因此在開發與部署上都更加彈性。而容器的出現正好與微服務的設計理念不謀而合，將小功能打包成獨立的容器，完美的實現了微服務之間的「獨立性」，再搭配**雲端平台**提供的算力與各種便捷的部署、監控工具，「雲原生」就成為了現在大家常聽到的 buzzword 了。
+
+講了那麼多，那剛開始提到的 CNCF 又是什麼來頭？CNCF 是一個由 Linux 基金會於 2015 年成立的組織，成員包括了 Google、IBM、Microsoft、AWS、Intel 等等，其宗旨為推廣雲原生技術的發展，用一句他們官網上的話來說就是：
 
 > “Make cloud native computing ubiquitous…”  (讓雲原生無所不在)
 
@@ -16,13 +22,13 @@
 
 ### 什麼是 Kubernetes？
 
-如果要用一句話介紹 Kubernetes，那就是：
+用一句話介紹 Kubernetes：
 
 > 容器管理平台
 
-Kubernetes，簡稱「K8s」(因為 K 到 s 之間有 8 個字母)，是一個用於自動化部署、擴展和管理**容器化應用服務**的開源平台。
+Kubernetes，簡稱「K8s」(因為 K 到 s 之間有 8 個字母)，是一個用於自動化部署、擴展和管理**容器化應用服務**的開源平台。在微服務的架構下，可能有成百上千個容器，而這麼多容器該如何有效的管理，在目前 Kubernetes 就是最主流的解決方案。
 
-K8s 的重要特色如下：
+K8s 的能夠做到以下幾點：
 
    * **自動化部署與回滾**：當應用程式需要更新時，K8s 會「逐步」的更新這些應用，並確保應用程式的運行狀態符合你的期望。如果這些更新有問題，K8s 也能依照你的需求回滾到以前的版本。
 
@@ -51,7 +57,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 * **網路的基本概念**：例如 IP、Port、DNS、路由規則等等，可以去網路上找一篇講網路概論的文章補齊，簡單了解即可。
 
-> 以上三點每項的學習成本大約 0.5 ~ 1.5 小時左右，就是了解最基本的即可~
+> 以上三點每項的學習成本大約 0.5 ~ 1.5 小時左右，了解最基本的即可~
 
 系列的開頭將會從 K8s 的基礎概念開始介紹，中間則會以 CKA 五大考試領域為章節，搭配實作來介紹不同的重點概念，最後在結尾分享 CKA 的考試技巧與心得，另外也將提供附錄做額外補充。
 
@@ -59,7 +65,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 > 註：「*」為 *CKA Optional*，如果是專攻 CKA 的讀者，可以先跳過這個部分，後面有興趣再回來看(例如 helm)。
 
-1. **Basic concept**：K8s 基本的概念，例如 Pod、Deployment、Service、Namespace、Label、Rolling update 等等。目前本章已更新完畢：
+1. **Basic concept**：K8s 基本的概念，例如 Pod、Deployment、Service、Namespace、Label、Rolling update 等等。
 
 | 天數 | 主題|
 | --- | --- |
@@ -74,7 +80,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 10 |[kubectl 基本操作彙整](https://ithelp.ithome.com.tw/articles/10346691)
 | Day 11 |[*好用的專案部署工具 --- Helm](https://ithelp.ithome.com.tw/articles/10346850)
 
-2. **Storage**：K8s 中的儲存概念，例如 ConfigMap、Secret、Volume、PV、PVC、StorageClass。目前本章已更新完畢：
+2. **Storage**：K8s 中的儲存概念，例如 ConfigMap、Secret、Volume、PV、PVC、StorageClass。
 
 | 天數 | 主題|
 | --- | --- |
@@ -83,7 +89,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 14 |[PV、PVC & StorageClass](https://ithelp.ithome.com.tw/articles/10347335)
 
 
-3. **Workloads & Scheduling**：K8s 中有工作附載、調度等概念，例如資源分配、Pod scheduling 的策略、Deployment 的部署策略。目前更新：
+3. **Workloads & Scheduling**：K8s 中有工作附載、調度等概念，例如資源分配、Pod scheduling 的策略、Deployment 的部署策略。
 
 | 天數 | 主題|
 | --- | --- |
@@ -101,7 +107,8 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 20 |[Kubernetes 的網路基本架構](https://ithelp.ithome.com.tw/articles/10348418)
 | Day 21 |[TLS/SSL in Kubernetes](https://ithelp.ithome.com.tw/articles/10348555)
 | Day 22 |[憑證管理與kubeconfig](https://ithelp.ithome.com.tw/articles/10348787)
-| Day 23 |[ervice 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
+| Day 23 |[Service 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
+| Day 24 |[Pod 的守門員 --- Network Policy](https://ithelp.ithome.com.tw/articles/10349422)
 
 5. **Cluster Architecture, Installation & Configuration**：K8s cluster 的基本設定，例如備份、升級 cluster、權限管理等等。
 
