@@ -110,7 +110,12 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | Day 23 |[Service 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
 | Day 24 |[Pod 的守門員 --- Network Policy](https://ithelp.ithome.com.tw/articles/10349422)
 
-5. **Cluster Architecture, Installation & Configuration**：K8s cluster 的基本設定，例如備份、升級 cluster、權限管理等等。
+5. **Cluster Configuration**：K8s cluster 的基本設定，例如備份、升級 cluster、權限管理等等。
+
+| 天數 | 主題|
+| --- | --- |
+| Day 25 |[Cluster upgrade](https://ithelp.ithome.com.tw/articles/10349662)
+| Day 26 |[etcd 的備份與還原](https://ithelp.ithome.com.tw/articles/10349968)
 
 6. **Troubleshooting**：K8s 中的故障排除以及相關監控方式。
 
