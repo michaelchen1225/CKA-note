@@ -116,6 +116,9 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | --- | --- |
 | Day 25 |[Cluster upgrade](https://ithelp.ithome.com.tw/articles/10349662)
 | Day 26 |[etcd 的備份與還原](https://ithelp.ithome.com.tw/articles/10349968)
+| Day 27 |[權限管理 (一)：RBAC](https://ithelp.ithome.com.tw/articles/10350434)
+| Day 28 |[權限管理 (二)：Service Account](https://ithelp.ithome.com.tw/articles/10351070)
+| Day 29 |[權限管理 (三)：Security Context](https://ithelp.ithome.com.tw/articles/10352051)
 
 6. **Troubleshooting**：K8s 中的故障排除以及相關監控方式。
 

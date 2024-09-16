@@ -290,7 +290,7 @@ Error from server (Forbidden): deployments.apps is forbidden: User "bob" cannot 
 
 > 因為RBAC的設定，Bob 只能操作 Pods，因此當他嘗試操作 Deployments 時就會被拒絕。
 
-最後，切換為管理員的 context：
+最後，切換回管理員的 context：
 ```bash
 kubectl config use-context kubernetes-admin@kubernetes
 ```
@@ -387,6 +387,22 @@ front-proxy-ca          Jul 01, 2034 18:34 UTC   9y              no
 如果發現某個憑證快要過期，可以透過 kubeadm 來更新這些憑證：
 ```bash
 kubeadm certs renew <cert-name>
+```
+
+### 環境清理
+
+> 為了不影響後續章節的操作，要記得清理環境喔
+
+* 將有關 Bob 的 context 和 user 刪除：
+```bash
+kubectl config delete-context bob
+kubectl config delete-user bob
+```
+
+* 刪除 bob 相關的 role 和 rolebinding：
+```bash
+kubectl delete role new-user
+kubectl delete rolebinding new-user-binding-bob
 ```
 
 ### 今日小結
