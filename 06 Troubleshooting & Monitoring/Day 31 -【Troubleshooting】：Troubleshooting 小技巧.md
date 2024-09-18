@@ -35,6 +35,7 @@
   * **Last State**：如果 Container 曾經重啟過，這裡會顯示上次執行的狀態，同樣可以透過「`Reason`」了解原因。
   
 * **Conditions**：有以下五大類，以「True」或「False」表示：
+
   | Type | 描述 |
   | --- | --- |
   | PodReadyToStartContainers | Pod 的 sandbox 與網路設定是否已完成 |
@@ -368,10 +369,11 @@ kubectl get events -o wide | grep kubelet
 kubectl get events --sort-by='{.metadata.creationTimestamp}'
 ```
 
-
-
 ### 今日小結
 
+今天是「Troubleshooting & Monitoring」的最後一篇，介紹了一些除錯的小技巧，重點在於「如何找到問題」。其實除錯的最重要的是心平氣和，有時候就只是打錯字而已，通常靜下來慢慢看都能找到問題。
+
+那本次鐵人賽關於 k8s 入門的六個章節就全部結束了，明天會來更新最後一篇文章，內容關於 CKA 考試的攻略、心得等等，如果是正在準備 CKA 的讀者可以參考看看喔。  
 
 -----
 **參考資料**
