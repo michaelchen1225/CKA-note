@@ -1,10 +1,11 @@
 ### 今日目標
 
+---
 * 準備一個 Kubernetes cluster 做為練習環境
   * 設定 VM 之間的 ssh 連線
-  * 使用 kubeadm 建立 cluster
+  * 使用 kubeadm 建立 cluster (STEP 1 ~ 7)
 
-* Bonus Tips：
+* Bonus Tips (Optional)：
   * 設定 kubectl bash completion
   * 加入新的 Worker Node
   * 在 Worker Node 使用 kubectl
@@ -12,10 +13,13 @@
   * 建立 single node cluster
   * 移除 cluster 中的 Worker Node
 
+* 重要提醒：「使用 Virtualbox，發現 kubelet 抓到的 Node IP 相同」之修改方式。
+
+***
 
 在接下來的章節中，將會有許多範例或練習需要對 cluster 進行操作，所以需要先準備練習用的 cluster，以下提供了兩種方法進行建置：
 
-### 方法一 : playground
+## 方法一 : Playground
 
 這是最簡單輕鬆的方式，直接使用網路上的 playground 進行練習，不需要額外的環境建置。這邊提供了兩個網站，登入後就能得到一個*暫時性*的 cluster，可以進行練習：
 
@@ -25,11 +29,13 @@
 兩者的主要差別是，killercoda 開一個環境比較方便，但最多只有兩個 Node 可以用。
 如果需要三個以上的 Node 可以使用 Play with Kubernetes。
 
-### 方法二 : kubeadm
+## 方法二 : kubeadm
 
-但使用 playground 的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的 cluster，可以使用「kubeadm」進行建置。此外，使用 kubeadm 建立 cluster 能讓你對整個 cluster 的架構有更清晰的認識。
+但使用 playground 的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的 cluster，可以使用「`kubeadm`」進行建置。
 
 kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立一個 cluster，並且可以直接在本地端進行操作。以下將以 Virtualbox 為例，用 kubeadm 建立一個 cluster。
+
+> 用 kubeadm 建立 cluster 能讓你對整個 cluster 的架構有更清晰的認識，蠻推薦初學者跟著底下一起操作，
 
 使用 kubeadm 進行建置 cluster 的步驟如下：
 
@@ -43,12 +49,22 @@ kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立
 
 ### STEP 1：準備環境
 
-首先需要安裝 Virtualbox (你也可以選用其他虛擬機平台)，並建立至少兩台的 VM 做為 Node 來組成 cluster。
+首先需要安裝 Virtualbox (也可以選用其他虛擬機平台)，並建立至少 2 台 VM 做為 Node 來組成 cluster。
 
 其中一台 VN 作為 Master Node，其餘的作為 Worker Node。需注意的是，每台 VM 只少需要：
 
   * 2GB RAM
   * 2 CPU
+
+---
+**補充：Single Node Cluster**
+
+其實只用一台 VM 即可建立 cluster，也就一台 VM 同時是 Master Node & Worker Node。這樣的方式稱為「single node cluster」。
+
+如果你手頭上的資源不多、電腦跑不動太多 VM，可以考慮建立 single node cluster 來當作練習環境，同樣按照下面的步驟進行建置，不過要注意做完「STEP 5」後，**不須操作**「*STEP 6 : 加入worker node*」，直接跳到「*STEP 7 : 安裝 Pod network*」，最後記得看「Tips 4: Single node cluster」。
+
+(記不住沒關係，底下如果遇到需要 single node cluster 的情況，會再次提醒！)
+***
 
 作業系統這裡挑選 Ubuntu 22.04。在網路設定方面，每台虛擬機準備兩張網路卡：
 
@@ -93,11 +109,11 @@ ssh-keygen
 ```
 
 * 修改 /etc/ssh/sshd_config，將 PermitRootLogin 設定為 yes，允許 clinnt 用 root 連進來：
+> 如果找不到 PermitRootLogin，直接新增這行即可。
 ```bash
 # /etc/ssh/sshd_config：
 PermitRootLogin yes
 ```
-> 如果找不到 PermitRootLogin，直接新增這行即可。
 
 * 重新啟動 ssh 服務：
 ```bash
@@ -125,18 +141,9 @@ ssh root@worker1
 
 ---
 
-> **Tips**：Single node cluster
+### STEP 2：安裝 Container Runtime
 
-其實只用一台 VM 即可建立 cluster，這樣的方式稱為「single node cluster」。
-
-如果你手頭上的資源沒有很多，就可以考慮建立 single node cluster 來當作練習環境，同樣按照下面的步驟進行建置，不過要注意做完「STEP 5」後，**不須操作**「*STEP 6 : 加入worker node*」，直接跳到「*STEP 7 : 安裝 Pod network*」，最後記得看「Tips 4: Single node cluster」。
-
-(記不住沒關係，底下如果遇到需要 single node cluster 的情況，會再次提醒！)
-
-
-### STEP 2：安裝 container runtime
-
-**每台** VM 上都需要安裝 container runtime，這裡以 containerd 為例：
+**每台** VM 上都需要安裝 container runtime，這裡以 `containerd` 為例：
 
 > 不同 Linux 版本的安裝步驟可以參考[官方文件](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#option-2-from-apt-get-or-dnf)，這裡以 Ubuntu 為例。
 
@@ -150,7 +157,7 @@ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyring
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 ```
 
-加入 containerd 的 repo 到 Apt 的 source 中：
+加入 `containerd` 的 repo 到 source 中：
 
 ```bash
 echo \
@@ -160,7 +167,7 @@ echo \
 sudo apt-get update
 ```
 
-安裝 containerd：
+安裝 `containerd`：
 
 ```bash
 sudo apt-get install -y containerd.io
@@ -172,7 +179,7 @@ sudo systemctl enable containerd
 systemctl status containerd
 ```
 
-接著安裝 crictl，一個用來操作 Container Runtime Interface (CRI) 的 CLI 工具：
+接著安裝 `crictl`，一個用來操作 Container Runtime 的 CLI 工具：
 
 ```bash
 VERSION="v1.30.0"
@@ -181,22 +188,20 @@ sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
 rm -f crictl-$VERSION-linux-amd64.tar.gz
 ```
 
-設定 crictl 需要的 socket 位置：
+設定 `crictl` 需要的 socket 位置：
 
 ```bash
 sudo crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock
 ```
 
-> **補充**：containerd 和 Docker 的關係可以參考[這裡](https://bluelight.co/blog/containerd-vs-docker#containerd-vs-docker-a-head-to-head-comparison)，兩者之區別可以參考[這裡](https://cloud.tencent.com/document/product/457/35747)
-
-安裝 containerd 與 crictl 後，需要將 cgroup-driver 設定為 k8s cluster 所需的 **systemd**：
+安裝 `containerd` 與 `crictl` 後，需要把「cgroup-driver」設定為 k8s 所需的 **systemd**：
 
 ```bash
 sudo mkdir -p /etc/containerd
 containerd config default | sudo tee /etc/containerd/config.toml
 ```
 
-編輯 /etc/containerd/config.toml，找到「[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]」，將 SystemdCgroup 設定為 true：
+編輯 /etc/containerd/config.toml，找到「`[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]`」，將 SystemdCgroup 設定為 true：
 
 ```yaml
 ......
@@ -215,12 +220,12 @@ containerd config default | sudo tee /etc/containerd/config.toml
 ......
 ```
 
-重新啟動 containerd：
+重新啟動 `containerd`：
 ```bash
 sudo systemctl restart containerd
 ```
 
-最終檢查一下是否有將「SystemdCgroup=ture」設定成功：
+最終檢查一下是否有將「`SystemdCgroup=ture`」設定成功：
 ```bash
 containerd config dump | grep SystemdCgroup
 # SystemdCgroup = true
@@ -234,19 +239,19 @@ containerd config dump | grep SystemdCgroup
 
 在每台 VM 上，需要以下三個組件：
 
-  * **kubelet**：昨天的文章中有提到，它是「小船的船長」
-  * **kubeadm**：用來部署 cluster 的工具
-  * **kubectl**：管理員用來與 cluster 進行溝通的 CLI 工具，讓你能透過下指令的方式操作 cluster
+  * **kubelet**：昨天的文章中有提到，它是「小船的船長」。
+  * **kubeadm**：用來部署 cluster 的工具。
+  * **kubectl**：管理員用來與 cluster 進行溝通的 CLI 工具，讓我們能透過下指令來操作 cluster。
 
 安裝以上三個組件的方式如下：
 
-* 檢查有沒有 /etc/opt/keyrings 這個目錄，如果沒有的話先建立起來：
+* 檢查有沒有 `/etc/opt/keyrings` 這個目錄，如果沒有的話先建立起來：
 
 ```bash
 ls -d /etc/apt/keyrings 2> /dev/null || sudo mkdir -p -m 755 /etc/apt/keyrings
 ```
 
-* 首先，把 kubernetes 的 repo 加入到 apt 的 source list 中：
+* 首先，把 kubernetes 的 repo 加入到 apt source list 中：
 ```bash
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
@@ -256,14 +261,14 @@ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 
 > 如果作業系統是其他版本的 Linux，可參考[官方文件](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl) 
 
-* 查看目前可用的 kubeadm 版本：
+* 查看目前可用的 `kubeadm` 版本：
 ```bash
 sudo apt update
 sudo apt-cache madison kubeadm
 # 這裡會列出可用的版本，以下範例選用 1.31.0-1.1
 ```
 
-* 安裝 kubelet、kubeadm、kubectl
+* 安裝 kubelet、kubeadm、kubectl：
 
 ```bash
 sudo apt-get update
@@ -271,7 +276,7 @@ sudo apt-get install -y kubelet=1.31.0-1.1 kubeadm=1.31.0-1.1 kubectl=1.31.0-1.1
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-* 檢查 kubeadm 是否安裝成功 
+* 檢查 kubeadm 是否安裝成功：
 
 ```bash
 kubeadm version
@@ -281,7 +286,7 @@ kubeadm version
 kubeadm version: &version.Info{Major:"1", Minor:"31", GitVersion:"v1.31.0", GitCommit:"9edcffcde5595e8a5b1a35f88c421764e575afce", GitTreeState:"clean", BuildDate:"2024-08-13T07:35:57Z", GoVersion:"go1.22.5", Compiler:"gc", Platform:"linux/amd64"}
 ```
 
-* 檢查 kubelet 是否安裝成功
+* 檢查 kubelet 是否安裝成功：
 
 ```bash
 kubelet --version
@@ -291,7 +296,7 @@ kubelet --version
 Kubernetes v1.31.0
 ```
 
-* 檢查 kubectl 是否安裝成功
+* 檢查 kubectl 是否安裝成功：
 
 ```bash
 kubectl version --client
@@ -302,7 +307,7 @@ Client Version: v1.31.0
 Kustomize Version: v5.4.2
 ```
 
-> 確認每台 VM 都成功安裝了 kubeadm、kubelet、kubectl 後，再往下進行步驟四。
+> 確認每台 VM 都成功安裝了 kubeadm、kubelet、kubectl 後，再往下進行 STEP 4。
 
 ### STEP4：關閉 swap 並啟用 ip_forward
 
@@ -334,13 +339,13 @@ lsmod | grep br_netfilter
 lsmod | grep overlay
 ```
 
-* 確認「net.bridge.bridge-nf-call-ip6tables」、「net.bridge.bridge-nf-call-iptables」、「net.ipv4.ip_forward」都是1:
+* 確認「net.bridge.bridge-nf-call-ip6tables」、「net.bridge.bridge-nf-call-iptables」、「net.ipv4.ip_forward」都是1：
 
 ```bash
 sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables net.ipv4.ip_forward
 ```
 
-> 確認每台 VM 都成功關閉 swap、模組有成功載入，並啟用 ip_forward 後，再往下進行步驟五。
+> 確認每台 VM 都成功關閉 swap、模組有成功載入，並啟用 ip_forward 後，再往下進行 STEP 5。
 
 ### STEP 5：初始化 Master Node
 
@@ -352,10 +357,10 @@ sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables ne
 sudo kubeadm init --apiserver-advertise-address <master node IP> --control-plane-endpoint <master node IP> --pod-network-cidr=10.244.0.0/16
 ```
 
-> Pod IP範圍(--pod-network-cidr)的相關含意將會在「Service & Networking」的章節中提到。
+> Pod IP範圍(--pod-network-cidr)的相關含意將會在「[Day 20](https://ithelp.ithome.com.tw/articles/10348418)」介紹。
 
 
-初始化後，會出現類似以下的訊息：
+初始化成功後，會出現以下訊息：
 
 ```text
 Your Kubernetes control-plane has initialized successfully!
@@ -385,7 +390,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-> 關於 kubeconfig 將會在後面的章節中提到。這裡可以先簡單理解為「管理員對 cluster 的操作設定檔」。
+> 關於 kubeconfig 將會在 [Day 22]((https://ithelp.ithome.com.tw/articles/10348418) 介紹。這裡可以先簡單理解為「管理員對 cluster 的操作設定檔」。
 
 初始化 Master Node 後，目前的 cluster 只存在一個 Node 而已，接下來我們要將 Worker Node 依序加入 cluster 中。
 
@@ -395,13 +400,12 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 在 Master node 上初始化成功的輸出中，「最下方」有提示該如何加入 Worker Node，我們就直接複製該指令到所有 Worker Node 上執行即可：
 
-> 以下操作僅於 worker node 上操作。
-
+* 在 Worker Node 上貼上：
 ```bash
   kubeadm join <control-plane-host>:<control-plane-port> --token <token> --discovery-token-ca-cert-hash sha256:<hash>
 ```
 
-加入成功後，回到 master node 上，執行以下指令：
+加入成功後，回到 master node 上，執行以下指令輸出 Node 的列表：
 
 ```bash
 kubectl get nodes
@@ -414,11 +418,11 @@ kubectl get nodes
 
 為了讓 cluster 中的 Pod 可以彼此溝通，我們需要安裝 **CNI** (Container Network Interface) 來部署 Pod network，可參考[官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)選則 CNI。
 
-常見的 CNIs 例如 flannel、calico 等。這裡兩種安裝方式都會介紹：
+常見的 CNI 例如 flannel、calico 等。這裡兩種安裝方式都會介紹：
 
-> 這裡推薦安裝 calico，因為 calico 有支援後續章節會介紹的 NetworkPolicy。
+> Flannel 安裝比較簡單，不過這裡推薦安裝 calico，因為 calico 有支援的功能較多，包括後續章節會介紹的 NetworkPolicy。
 
-**calico**
+**calico：**
 
 * 在 Master Node 上部署以下檔案：
 ```bash
@@ -463,7 +467,7 @@ watch kubectl get pods -n calico-system
 kubectl get node -w
 ```
 
-**flannel**
+**flannel：**
 
 在 Master Node 上執行以下指令：
 
@@ -473,15 +477,16 @@ kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Doc
 
 ```bash
 kubectl get nodes -w
-# -w會持續監控node的狀態
+# -w會持續輸出 node 的狀態
 ```
 
 等待一段時間後，當 Node 的狀態變成 Ready，就代表 cluster 已經建置完成了。
 
 ---
-**提醒!**
+**提醒**
 
-> 如果你建置的是 single node cluster，記得繼續看下面的「Tips 4: Single node cluster」。
+> 如果你建置的是 single node cluster，記得繼續看下面的「Tips 4: Single Node Cluster」。
+***
 
 ### 加入新的 Worker Node
 
@@ -492,10 +497,15 @@ kubeadm token create --print-join-command
 
 將上述指令的輸出複製並在新的 Worker Node 上執行，就可以加入 cluster 了。
 
+## Bonus Tips
+
+如果以上設定都有完成了，那麼恭喜你成功建置了一個 Kubernetes Cluster！
+
+以下整理出了一些額外的小技巧與設定，能夠讓你更方便的操作與管理 clsuter：
 
 ### Tips 1：kubectl bash completion
 
-Linux 的 bash shell 有一個很方便的功能，就是當你輸入指令時，按下「tab」鍵會自動補全。而 kubectl 也有支援這個功能，不過需要以下設定：
+Linux 的 bash shell 有一個很方便的功能，就是輸入指令時按下「tab」鍵會自動補齊檔名或命令。而 kubectl 也有支援這個功能，不過需要以下設定：
 
   * 下載 bash completion：
   ```bash
@@ -524,14 +534,14 @@ Linux 的 bash shell 有一個很方便的功能，就是當你輸入指令時�
 
 假如你今天都沒有做任何設定，直接在 worker node 上執行 kubectl 指令，會發現它是無法執行的。
 
-這是因為 kubectl 的設定檔是在 Master node 上，也就是 /etc/kubernetes/admin.conf，所以必須將 /etc/kubernetes/admin.conf 複製到 Worker Node 管理員的 $HOME/.kube/config (如同我們最初對 Master Node 所做的一樣)，才可以使用 kubectl 指令。
+這是因為 kubectl 的操作設定檔是在 Master node 上，也就是 `/etc/kubernetes/admin.conf`，所以必須將 `/etc/kubernetes/admin.conf` 複製到 Worker Node 管理員的 $HOME/.kube/config (如同初始化 Master Node 後所做的一樣)，才可以使用 kubectl 指令。
 
 > 在 Worker Node 上執行以下操作：
 
 ```bash
 mkdir -p $HOME/.kube
 scp master:/etc/kubernetes/admin.conf ~/.kube/config
-# 使用 scp 之前你需要先將相關的 ssh 設定好才能成功複製檔案
+# 使用 scp 之前你需要先將相關的 ssh 設定好
 ```
 
 ### Tips 3：初始化過程中的除錯
@@ -565,7 +575,7 @@ sudo crictl logs <container-id>
 
 > 關於 taint 的相關概念，有興趣的話可以先看「[Day 16](https://ithelp.ithome.com.tw/articles/10347661)」。
 
-但是 single node cluster 的情況下，Master Node 需要同時肩負 worker node 的工作，所以需要移除 taint：
+但是 single node cluster 的情況下，Master Node 需要同時兼任 worker node 的工作，所以需要移除 taint：
 
 * 先找到 taint 的名稱：
 
@@ -611,6 +621,7 @@ kubectl drain worker1 --ignore-daemonsets
 ```bash
 kubectl delete node worker1
 ```
+
 * 再次列出所有 Node，確認 worker1 已經被移除：
 ```bash
 kubectl get nodes

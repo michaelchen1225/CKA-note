@@ -1,10 +1,10 @@
 ### 今日目標
 
-* 了解 Kubernetes 的基本執行單位 --- Pod
+1. Kubernetes 的基本執行單位 --- Pod
 
-* 了解 Kubernetes 的架構 --- Cluster
+2. Kubernetes 的架構 --- Cluster
 
-* 了解組成 cluster 的基本硬體單位 --- Node
+3. Cluster 的基本硬體單位 --- Node
 
   * Node 的必要組件：kubelet、container runtime、kube-proxy
 
@@ -12,18 +12,20 @@
 
   * Master Node 的特殊組件：kube-apiserver、etcd、kube-scheduler、kube-controller-manager
 
-* 了解 HA cluster 的設計方式。
+3. 了解 HA cluster 的設計方式。
 
 
 > 底下會嘗試用一個**船隊**的比喻，來解釋 Kubernetes 的架構與組件。
 
 那就讓我們從 Kubernetes 最基本的**執行單位**談起吧。
 
-### 基本的執行單位 --- Pod
+## 基本的執行單位 --- Pod
 
-我們知道 K8s 是一個容器管理平台，而這些容器(container)就是在「**Pod**」當中執行：
+K8s 是一個容器管理平台，這些被管理的容器(container)會在 **Pod** 中執行：
 
-   * 一個 Pod 能跑多個容器，但一般情況下為了確保獨立性都只會跑一個容器。
+   * 一個 Pod 能跑 1 個或多個容器，視情況選擇：
+     * 功能僅需一個容器：Single-container Pod
+     * 功能需要多個容器協同合作：Multi-container Pod
 
    * Pod 被產生時會賦予一個「虛擬 IP」，用來與其他 Pod 溝通。
 
@@ -35,17 +37,17 @@
 
 那麼這些 Pod 又是如何被 K8s 管理呢？在回答這個問題之前，我們得先了解 K8s 的基本架構，也就是 cluster。
 
-### Kubernetes 的架構 --- Cluster
+## Kubernetes 的架構 --- Cluster
 
 「**Cluster** (叢集)」是一種 topology。當你部署了 Kubernetes，一個由「**Node** (節點)」組成的 cluster 就形成了。
 
 對 K8s cluster 來說，這些 Node 的功能如下：
 
-   * 一個 Node 代表一台伺服器(無論是實體還是虛擬的)，為負責提供執行空間給 Pod。
+   * 一個 Node 代表一台伺服器(無論是實體還是虛擬的)，為負責提供執行環境給 Pod。
 
 > 如果 cluster 想像成一個船隊，「船」就是 Node，船上載著貨櫃 (Pod)
 
-### 組成 cluster 的基本硬體單位 --- Node
+## Cluster 的基本硬體單位 --- Node
 
 每個 Node 的必要組件如下：
 
@@ -67,7 +69,7 @@
 
 * **Master Node** 
 
-   又稱為「Control Plane」，負責管理與指揮整個 cluster，例如資源調度、cluster 的狀態監控等等。
+   又稱為「**Control Plane**」，負責管理與指揮整個 cluster，例如資源調度、cluster 的狀態監控等等。
    
    管理員可以透過 CLI (Command Line Interface) 或 API 來下達指令或任務給 Master Node。
 

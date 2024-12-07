@@ -83,6 +83,7 @@ Namespace Quota | quota for ns | [Configure Memory and CPU Quotas for a Namespac
 -----|--------|------
 使用者憑證相關   | csr | [Certificates and Certificate Signing Requests](https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/) --> How to issue a certificate for a use
 kubeconfig | kubectl config | [kubectl config](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/)
+用 openssl 查看憑證 | openssl view cert | [Generate Certificates Manually](https://kubernetes.io/docs/tasks/administer-cluster/certificates/)
 
 ### Ingress 
 
