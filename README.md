@@ -126,7 +126,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | --- | --- |
 | Day 20 |[Kubernetes 的網路基本架構](https://ithelp.ithome.com.tw/articles/10348418)
 | Day 21 |[TLS/SSL in Kubernetes](https://ithelp.ithome.com.tw/articles/10348555)
-| Day 22 |[憑證管理與kubeconfig]((https://ithelp.ithome.com.tw/articles/10348418)
+| Day 22 |[憑證管理與kubeconfig](https://ithelp.ithome.com.tw/articles/10348418)
 | Day 23 |[Service 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
 | Day 24 |[Pod 的守門員 --- Network Policy](https://ithelp.ithome.com.tw/articles/10349422)
 
