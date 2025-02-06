@@ -1,5 +1,3 @@
-# Day 11 -【Basic Concept】：Helm
-
 ### 今日目標
 
 * 了解 Helm 的用途與架構
@@ -13,7 +11,11 @@
 
 * 部署他人分享的 Chart
 
+* Helm 的常用指令彙整
+
 今天是「Basic Concept」章節的最後一篇，我們來看一個好用的套件管理工具：Helm。
+
+> 本日內容不屬於 CKA 考試範圍。
 
 ### 什麼是 Helm？
 
@@ -29,7 +31,7 @@ Helm 是一項 CNCF 的專案，能將 k8s 中的應用打包起來，方便我�
 
 為了解決這些問題， Helm 將一套應用服務打包起來，形成一個叫做「chart」的檔案，我們就能針對 chart 來部署、管理、調整、升級整套應用服務。另外，chart 也可以透過 repository 來分享，讓其他人可以快速的部署應用服務，也有利於版本控制。
 
-> 總之以[官網](https://helm.sh/)的話來說，Helm 有以下四大特色：
+> 以[官網](https://helm.sh/)的話來說，Helm 有以下四大特色：
 
 * Manage Complexity
 * Easy Updates
@@ -70,7 +72,7 @@ git clone https://github.com/michaelchen1225/helm-demo.git
 cd ./helm-demo
 ```
 
-我們先看一下一個 Helm chart 的基本目錄結構：
+此目錄就是一個可用的 Helm chart，我們先看一下這個 Helm chart 的基本目錄結構：
 ```text
 helm-demo
 |-- Chart.yaml
@@ -83,18 +85,18 @@ helm-demo
 ```
 * **Chart.yaml**：用來描述該 chart 的基本資訊，例如 chart 的名稱、版本、描述等。
 * **charts**：放置「子 chart」的目錄，通常有相依性的 chart 會放在這裡，這個目錄預設是空的。
-* **templates**: 放置 k8s 資源 yaml 的目錄，也就是我們要部署的應用服務：
+* **templates**: 放置 k8s 資源 yaml 的目錄，以下為我們自行添加的 yaml：
   * nginx-deploy.yaml：Deployment 的 yaml
   * nginx-deploy-svc.yaml：Service 的 yaml
   * NOTES.txt：這個檔案會在部署 chart 時顯示，用來提醒使用者一些重要資訊。
 * **values.yaml**：用來設定一些參數，這些參數會被套用在 templates 中使用，例如：image 的版本、replicas 的數量等。當我們需要對不同部署環境微調應用服務時，修改這個檔案就可以了。
 
-> 這個基本的目錄結構可以用 `helm create` 來生成，例如：
+> 上述為一個 helm chart 必須的基本專案結構，該結構可以用 `helm create` 來初始化，例如：
 ```bash
 helm create helm-demo-2
 ```
 
-首先，我們先撰寫 Chart.yaml：
+有了一個基本的 Helm chart 結構後，我們先來撰寫 Chart.yaml：
 ```yaml
 apiVersion: v2
 name: helm-demo
@@ -142,7 +144,7 @@ spec:
 * .Release：每次部署 chart 都會有帶有一個 release 物件，包含了這次部署的相關資訊。
 * .Values：values.yaml 的內容
 
-這樣說有點抽象，我們先把 nginx-deploy.yaml 修改成底下這樣：
+這樣說有點抽象，這裡直接實際把 nginx-deploy.yaml 修改成底下這樣：
 ```bash
 vim templates/nginx-deploy.yaml
 ```
@@ -168,7 +170,7 @@ spec:
         name: nginx
 ```
 
-這樣一來，這個 Deployment 在部署實會被彈性調整的地方有：
+> 這樣一來，這個 Deployment 在部署實會被彈性調整的地方有：
 * metadata.name：名稱會加上 .Release 物件中的 Name 做前綴。
 * spec.replicas：副本數量會使用「values.yaml」中 replicas 的值。
 * spec.containers.image：image 會使用「values.yaml」中 image 的 repository 與 tag。
@@ -353,6 +355,113 @@ helm package ./helm-demo
 Successfully packaged chart and saved it to: /root/helm-demo-0.1.0.tgz
 ```
 
+### 建立 helm chart repository：以 Gitlab 為例
+
+一個標準的 helm chart repository 應該長這樣：
+
+```text
+charts/
+  |
+  |- index.yaml
+  |
+  |- my-chart.tgz
+```
+
+重點是那個 index.yaml，這個檔案會記錄這個 repository 中所有的 chart 資訊，例如：chart 的名稱、版本、描述等。
+
+以下為建立一個 helm chart repository 的步驟：
+
+* 建立一個新目錄，例如：`helm-repo`：
+
+```bash
+mkdir helm-repo
+```
+
+* 進入 helm-repo 後先打包 chart：
+
+```bash
+helm package /root/helm-demo
+```
+```text
+Successfully packaged chart and saved it to: /root/helm-repo/helm-demo-0.1.0.tgz
+```
+
+* 生成 index.yaml：
+
+```bash
+helm repo index 
+```
+
+* 新增 .gitlab-ci.yml，讓 Gitlab CI 在 push 後自動將 chart 丟上去：
+
+```yaml
+stages:
+  - upload
+
+upload:
+  image: curlimages/curl:latest
+  stage: upload
+  script:
+    - CHART=$(ls | grep .gz)
+    - echo $CHART
+    - 'curl --fail-with-body --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@helm-demo-0.1.0.tgz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/stable/charts"'
+```
+
+* 提交變更到 Gitlab、等待 CI 完成後，前往左邊選單中的 `Deploy -> Package registry` 查看丟上去的 helm package：
+
+  ![alt text](image-2.png)
+
+
+* 將這個 repository 加入 helm repo list 當中：
+
+```bash
+helm repo add  my-helm-repo https://gitlab.com/api/v4/projects/<project-id>/packages/helm/stable
+```
+> gitlab 的 project-id 可以在 repo 首頁的右上角找到：
+![alt text](image-1.png)
+
+* 加入後 update 一下：
+
+```bash
+helm repo update
+```
+
+* 查看是否能成功從自己的 repository 搜尋到 helm-demo：
+
+```bash
+helm search repo helm-demo
+```
+```text
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+my-repo/helm-demo       0.1.0           1.0.0           helm demo from day 11
+```
+
+* 安裝 helm-demo：
+
+```bash
+helm install my-release my-repo/helm-demo -n test-helm-demo --create-namespace
+```
+
+* 查看 release：
+
+```bash
+helm list -n test-helm-demo
+```
+
+* 確認部署是否成功：
+
+```bash
+kubectl get all -n test-helm-demo
+```
+
+**注意**
+
+* 未來如果有在 repo 中加入新的 chart，記得要重新下 `helm repo index` 來更新 index.yaml 中的資訊！
+
+* 若有修改原本的 chart，記得也要一起修改 Chart.yaml 中的 version 再使用 `helm package` 重新打包。
+
+
+
 ### 部署他人分享的 Chart
 
 Helm 的 chart 也有類似 Github 的平台來分享，來源分為以下兩者：
@@ -362,7 +471,7 @@ Helm 的 chart 也有類似 Github 的平台來分享，來源分為以下兩者
 
 **安裝 Artifact Hub 上的 Chart**
 
-* 前往 [Artifact Hub] 搜尋你想要的 Chart，例如：`nginx`。點進去後可以看到這個 Chart 的相關資訊，包含了安裝方式、相依性等。
+* 前往 [Artifact Hub](https://artifacthub.io/) 搜尋你想要的 Chart，例如：`nginx`。點進去後可以看到這個 Chart 的相關資訊，包含了安裝方式、相依性等。
 
 **安裝自行加入的 repository**
 
@@ -395,7 +504,10 @@ helm repo remove <repo-name>
 
 ### Helm 的基本指令彙整
 
-> 以下將 helm 的常用指令彙整，方便日後查詢：
+
+以下將 helm 的常用指令彙整，方便日後查詢：
+
+> **注意**：不同 namespace 的操作請用 `-n` 指定，以下預設為 default namespace。
 
 初始化一個 Chart，生成基本的目錄結構：
 ```bash
@@ -432,6 +544,21 @@ helm install <release-name> <chart-name> --set <key>=<value>
 helm install <release-name> <chart-name> --values <path-to-other-values.yaml>
 ```
 
+把 Chart 安裝在一個全新的 namespace：
+```bash
+helm install <release-name> <chart-name> -n <new-namespace> ----create-namespace
+```
+
+列出某個 namespace 中的 release：
+```bash
+helm list -n <namespace>
+```
+
+列出所有 namespace 中的 release：
+```bash
+helm list --all-namespaces
+```
+
 解除安裝 Chart：
 ```bash
 helm uninstall <release-name>
@@ -445,6 +572,17 @@ helm list
 更新一個 release：
 ```bash
 helm upgrade <release-name> <chart-name>
+```
+
+更新一個 release，且 chart 來源為遠端 repo：
+```bash
+helm repo update
+helm upgrade <release-name> <repo-name>/<chart-name>
+```
+
+查看某個 release 的版本紀錄：
+```bash
+helm history <release-name>
 ```
 
 Rollback 一個 release 到指定 REVISION：
@@ -499,4 +637,6 @@ helm repo remove <repo-name>
 * [Artifact Hub](https://artifacthub.io/)
 
 * [Helm Charts Tutorial: A Simple Guide for Beginners](https://devopscube.com/create-helm-chart/)
+
+* [Get started with GitLab's Helm Package Registry](https://about.gitlab.com/blog/2021/10/18/improve-cd-workflows-helm-chart-registry/)
 

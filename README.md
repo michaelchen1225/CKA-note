@@ -1,6 +1,5 @@
-# 2024 IT 邦幫忙鐵人賽 - 【[入門 Kubernetes 到考取 CKA 證照](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)】
-
 ### 前言
+
 
 讓我們從「雲原生 (Cloud Native)」開始談起。
 
@@ -39,7 +38,7 @@
 
 ## 什麼是 Kubernetes？
 
-如果用一句話介紹 Kubernetes，我會說：一個**容器管理平台**。
+如果用一句話介紹 Kubernetes，就是：**容器管理平台**。
 
 Kubernetes，簡稱「K8s」(因為 K 到 s 之間有 8 個字母)，是一個用於自動化部署、擴展和管理**容器化應用服務**的開源平台。在微服務的架構下，可能有成百上千個容器，而這麼多容器該如何有效的管理，在目前 Kubernetes 就是最主流的解決方案。
 
@@ -66,8 +65,6 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 
 在開始閱讀文章之前，以下三項技能建議先點起來：
 
-> 每項的學習成本大約 0.5 ~ 1.5 小時左右，了解最基本的即可~
-
 * **Linux 基本操作能力**：cd、ls、chmod、grep、mkdir、tail、curl、systemctl、標準化輸出、管線等等的操作就不多提了，重點是熟悉 vim 的操作方式，例如游標移動、新增行數、回到上一步(undo)、存檔退出等等，因為之後會有許多時間在編輯 yaml，熟悉 vim 會方便許多。
 
 * **了解基本的容器概念**：至少要知道容器的基本概念，如果真的沒有概念，這裡提供三個步驟入門：
@@ -78,6 +75,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
   > 這裡提供一個相當不錯的影片教學：「[30 分鐘 Docker 入門教程](https://www.youtube.com/watch?v=Ozb9mZg7MVM)」。
 
 * **網路的基本概念**：例如 IP、Port、DNS、路由規則等等，可以去網路上找一篇講網路概論的文章補齊，簡單了解就好。
+
 
 系列的開頭將會從 K8s 的基礎概念開始介紹，中間則會以 CKA 五大考試領域為章節，搭配實作來介紹不同的操作應用，最後在結尾分享 CKA 的考試技巧與心得，另外也將提供附錄做額外補充。
 
@@ -90,7 +88,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | 天數 | 主題|
 | --- | --- |
 | Day 02 |[Kubernetes 的架構與組件](https://ithelp.ithome.com.tw/articles/10345505)
-| Day 03 |[使用 Kubeadm 建立 Kubernetes Cluster + 相關的 Bonus Tips](https://ithelp.ithome.com.tw/articles/10345660)
+| Day 03 |[建立 Kubeadm Cluster +  Bonus Tips](https://ithelp.ithome.com.tw/articles/10345660)
 | Day 04 |[Pod](https://ithelp.ithome.com.tw/articles/10345796)
 | Day 05 |[Pod 中的環境變數與指令](https://ithelp.ithome.com.tw/articles/10345967)
 | Day 06 |[ReplicaSet、Deployment & StatefulSet](https://ithelp.ithome.com.tw/articles/10346089)
@@ -126,7 +124,7 @@ K8s 可用於多種應用場景，例如前面提到的「微服務」，或是 
 | --- | --- |
 | Day 20 |[Kubernetes 的網路基本架構](https://ithelp.ithome.com.tw/articles/10348418)
 | Day 21 |[TLS/SSL in Kubernetes](https://ithelp.ithome.com.tw/articles/10348555)
-| Day 22 |[憑證管理與kubeconfig](https://ithelp.ithome.com.tw/articles/10348418)
+| Day 22 |[憑證管理與kubeconfig](https://ithelp.ithome.com.tw/articles/10348787)
 | Day 23 |[Service 的路由 --- Ingress](https://ithelp.ithome.com.tw/articles/10349141)
 | Day 24 |[Pod 的守門員 --- Network Policy](https://ithelp.ithome.com.tw/articles/10349422)
 
@@ -173,6 +171,8 @@ Services & Networking | 20%
 > 五大領域下面還有更細的子領域，可參考 [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/#)
 
 CKA 考試的及格分數為 66 分，筆者在今年八月順利通過了考試：
+
+> [我的 CKA 攻略](https://ithelp.ithome.com.tw/articles/10354313)
 
 **考試成績：**
 
