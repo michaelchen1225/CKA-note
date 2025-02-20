@@ -1,32 +1,35 @@
 ### 前言
 
-終於啊，這次的鐵人賽已經成功完賽了！最後分享一下我在今年(2024)考過 CKA 的攻略：
+鐵人賽的最後，分享一下我在今年考過 CKA 的攻略：
 
-* [什麼是 CKA？](#什麼是-cka)
+* CKA 簡介
 
-* [報名考試 & 考試預約](#報名考試--考試預約)
+* 報名考試 & 考試預約
 
-* [準備考試與學習資源](#準備考試與學習資源)
+* 準備考試與學習資源
 
-* [怎麼知道自己準備好了？](#怎麼知道自己準備好了)
+* 怎麼知道自己準備好了？
 
-* [考試技巧與注意事項](#考試技巧與注意事項)
+* 考試技巧與注意事項
 
-* [考試當天的流程](#考試當天的流程)
+* 考試當天的流程
 
-* [心得與考題 Brain Dump](#心得與考題-brain-dump)
+* 考題 Brain Dump 與心得
 
-## 什麼是 CKA？
+* 附錄：CKA 考試時常用的官方文件清單
 
-`CKA` 是 Certified Kubernetes Administrator 的縮寫，是由 **Cloud Native Computing Foundation** (CNCF) 所提供的 Kubernetes 認證考試，主要針對 Kubernetes 的操作與管理能力進行考核。
+## CKA 簡介
+
+`CKA` 是 Certified Kubernetes Administrator 的縮寫，是由 *Cloud Native Computing Foundation* (CNCF) 所提供的 Kubernetes 認證考試，主要針對 Kubernetes 的操作與管理能力進行考核。
 
 * **考試時間**：2 小時
 * **考試方式**：線上考試、線上考官監考
 * **題目數量**：15-20 實作題 (我這次是 17 題)
 * **通過分數**：66 分，滿分 100 分。
 * **重考次數**：1 次 (第一次沒過能免費再考一次)
+* **結果通知**：考試結束後 24 小時內
 * **Open Book**：可以查閱[官方文件](https://kubernetes.io/docs/)。(不能查看其他網站)
-* **結果通知**：考試結束後 24 小時內。
+
 
 > [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/)
 
@@ -42,17 +45,18 @@ Workloads & Scheduling | 15%
 Cluster Architecture, Installation & Configuration | 25%
 Services & Networking | 20%
 
-上面的五大領域之下還有其他的子領域，可以參考 [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/#)。(基本上這次[鐵人賽系列](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)已經涵蓋了全部的考試範圍)
+上面的五大領域之下還有其他的子領域，可以參考 [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/#)。(基本上這次[鐵人賽系列](https://ithelp.ithome.com.tw/users/20168692/ironman/7376)已經涵蓋了全部的考試範圍，可以參考 [Day 01](https://ithelp.ithome.com.tw/articles/10344706) 查看每個 Domain 與相關文章介紹的對應表)
 
 ## 報名考試 & 考試預約
 
-CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多，例如我是在 2023 的的黑色星期五報名的，費用是 197.5 美金，省了一半呢。
+CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多，例如我是在 2023 的的黑色星期五報名的，費用是 197.5 美金，省了一半。
 
 > 也不一定只有黑五有折扣，可以留意一下 [Linux Foundation 的官方臉書](https://www.facebook.com/TheLinuxFoundation)，只要有優惠基本上都會發文，例如今年八月份就有「夏季優惠」，全證照 40% off。
 
 前往 [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/) 即可報名考試，報名成功後會寄 email 通知：
 
-![https://ithelp.ithome.com.tw/upload/images/20240919/20168692HPQbQ346oO.png](https://ithelp.ithome.com.tw/upload/images/20240919/20168692HPQbQ346oO.png)
+![https://ithelp.ithome.com.tw/upload/images/20240920/20168692A1q7kzGr5r.png](https://ithelp.ithome.com.tw/upload/images/20240920/20168692A1q7kzGr5r.png)
+
 
 上面的 email 中最重要的是有一個「**My Portal**」的連結，這個連結超級重要，驗證姓名、預約考試、系統需求測試、考試須知、考試入口以及考試結果通通在這個 portal 上，建議用書籤先存起來。
 
@@ -70,7 +74,7 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 確認完後，在「My Portal」上，點選「`Schedule an Exam`」就可以開始預約了。開頭可以選擇「考試語言」，雖然有中文能選，但還是建議選英文，因為怕中文翻譯有時候怪怪的，英文考題能最清楚的表達題意、用字其實也不難。
 
-在時間安排上，能預約的考試時段相當多(多到比你跟朋友喬時間出去簡單XD)，通常都能找到合適的考試時間。預約完成後，會寄 email 通知，並且說明只要不是考試開始前 24 小時，都可以隨時「取消」或「更改考試時間」：
+在時間安排上，能預約的考試時段相當多，通常都能找到合適自己的考試時間。預約完成後，會寄 email 通知，裡面會說明只要不是考試開始前 24 小時，都可以隨時「取消」或「更改考試時間」：
 
 ![https://ithelp.ithome.com.tw/upload/images/20240919/201686927XS5y1Pmv6.png](https://ithelp.ithome.com.tw/upload/images/20240919/201686927XS5y1Pmv6.png)
 
@@ -88,7 +92,7 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 * *線上課程*：唯一推薦 Udemy 上的「[Certified Kubernetes Administrator (CKA) with Practice Tests](https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/?couponCode=ST11MT91624A)」，雖然全英文授課，不過語速偏慢、用詞簡單、口音不重，並且最重要的提供一堆的 Lab 練習，還可以反覆刷題。
 
-> 如果你的 Udemy 帳號已經買過課程了，建議再辦一支新的帳號再買，因為 Udemy 新帳號的第一堂課一律 399 台幣，原價買要兩千多。
+> 如果你的 Udemy 帳號已經買過其他課程了，建議再辦一支新的帳號再買這個CKA課程，印象中 Udemy 新帳號的第一堂課都 399 台幣，原價買這個課程要兩千多。
 
 
 #### **Step 2：刷題**
@@ -101,18 +105,17 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 * [killercoda 的 CKA 專區](https://killercoda.com/cka)：總共有 120 幾題的實作，難度我覺得和考試差不多，蠻推薦的。
 
-* [PCKA Exercises](https://github.com/chadmcrowell/CKA-Exercises/blob/main/cluster-architecture.md)：CKA 小練習，不太算題目，但都是考試時常用的操作。
+* [CKA Exercises](https://github.com/chadmcrowell/CKA-Exercises/blob/main/cluster-architecture.md)：CKA 小練習，不太算題目，但都是考試時常用的操作。
 
 付費的題目我只刷過 [Udemy 課程]((https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/?couponCode=ST11MT91624A))附贈的 Lab，如果你覺得免費的題庫刷完了還是不安心可以買這個，直接跳過它的課程開始做 Lab。
 
 > 授課單元搭配的題目通常都很簡單，主要是讓你熟悉操作，不過最後面還有三個模擬試題還是蠻有參考價值的，尤其是一些關於 jsonpath 的操作。
 
-刷題的過程中難免會出錯，我當時會針對錯誤的題目回去複習相關知識點，然後把這些知識點整理在一起，在模擬考或正式考試之前複習。另外我也會複習
-特定操作在官方文件中的位置，這裡是我整理的清單：「[CKA 常用的官方文件](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/CKA%20%E5%B8%B8%E7%94%A8%E7%9A%84%E5%AE%98%E6%96%B9%E6%96%87%E4%BB%B6.md)」。
+刷題的過程中難免會出錯，我當時會針對錯誤的題目回去複習相關知識點，然後把這些知識點整理在一起，在模擬考或正式考試之前複習。另外我也會複習特定操作在官方文件中的位置，這裡是我整理的清單：「[CKA 常用的官方文件](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/CKA%20%E5%B8%B8%E7%94%A8%E7%9A%84%E5%AE%98%E6%96%B9%E6%96%87%E4%BB%B6.md)」。
 
 #### **Step 3：模擬考**
 
-刷完題目、補齊知識點、整理錯誤後，在考試前一周就可以來寫 killer.sh 的模擬考，可以從「My Protal」右上角進入。
+刷完題目、補齊知識點、整理錯誤後，在考試前一周就可以來寫 killer.sh 的模擬考，從「My Protal」右上角即可進入。
 
 這份模擬考的操作環境和正式考試時很相似，可以藉機適應考試環境。在難度方面，考試題目難度還高，但原因倒不是因為完全不會解，而是操作的複雜度較高、且要在兩個小時內寫完 25 題，相當考驗官方文件的熟練度。
 
@@ -126,7 +129,7 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 衡量指標相當簡單：
 
-> 做完以上的三大步驟後，如果你能在兩個小時內、僅參考官方文件的情況下，killer.sh 模擬考拿到 110 分以上就穩了。
+> 做完以上的三大步驟後，如果你能在兩個小時內、僅參考官方文件的情況下，killer.sh 模擬考拿到 110 分上下就穩了。
 
 以我的例子來說：
 
@@ -140,13 +143,30 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 知道自己準備好後，就可以準備來參加考試了。以下是一些考試的小技巧：
 
-* kubectl 的 `alias=k` 和 `bash completion` 預設已經設好了，多家利用可以節省考試時間。
+* kubectl 的 `alias=k` 和 `bash completion` 預設已經設好了，多多利用可以節省考試時間。
 
-* 忘記指令用法就多用 `-h`，通常會有範例可以參考。例如不會建立 ingress，可以：
+* 忘記指令用法就多用 `-h`，通常會有範例可以參考。例如忘記怎麼建立 ingress 也不一定要馬上查官網，-h 就說得蠻清楚的：
 
 ```bash
 kubectl create ingress -h
 ```
+```shell
+...(略)
+Examples:
+  # Create a single ingress called 'simple' that directs requests to foo.com/bar to svc
+  # svc1:8080 with a TLS secret "my-cert"
+  kubectl create ingress simple --rule="foo.com/bar=svc1:8080,tls=my-cert"
+  
+  # Create a catch all ingress of "/path" pointing to service svc:port and Ingress Class as
+"otheringress"
+  kubectl create ingress catch-all --class=otheringress --rule="/path=svc:port"
+  
+  # Create an ingress with two annotations: ingress.annotation1 and ingress.annotations2
+  kubectl create ingress annotated --class=default --rule="foo.com/bar=svc:port" \
+  --annotation ingress.annotation1=foo \
+  --annotation ingress.annotation2=bla
+ ...(略)
+ ```
 
 * 產生 yaml 範例：
 
@@ -241,7 +261,7 @@ kubectl config use-context <cluster-name>
 
 * 我是用筆電考試的，因此我得舉著筆電繞來繞去，攝影的角度要喬一段時間。考試環境是我的房間，我提前將雜物搬到門外、書櫃用布料完全罩住，其他就只剩床、櫃子了，因此環境檢查也很快就過了。然後是檢查臉、耳後、手腕、桌子底下。
 
-* 然後考官要求把手機拿出來對準攝影機，然後他請我把手機放置在考試時拿不到的地方，我就來開座位，把手機放在房間最遠的櫃子上。
+* 然後考官要求把手機拿出來對準攝影機，然後他請我把手機放置在考試時拿不到的地方，我離開座位，把手機放在房間最遠的櫃子上。
 
 * 回來後因為我沒有用筆電的攝影機顯示我到底把手機放哪了，所以考官要求我給他看一下。(又拿著筆電走來走去)
 
@@ -277,7 +297,7 @@ kubectl config use-context <cluster-name>
 
 這次的 CKA 考試總共有 17 題，這裡盡量回憶了 17 題的考點：
 
-> 非考題順序
+> 非實際考題順序
 
 1. 建立 hostpath PV，然後建立 PVC 掛到 Pod 裡面。
 
@@ -315,7 +335,12 @@ kubectl config use-context <cluster-name>
 
 > 其實 CKA 的考題真的比模擬考簡單的多，大家如果模擬考 OK 了就放心去考吧~
 
-這次的鐵人賽花了 32 天才全部寫完，比預期的 30 天多了兩天，不過也算是順利完賽了，希望這次的系列文章有達到最初設定的目標：幫助到 k8s 的初學者與準備 CKA 的讀者！
+
+## 附錄：CKA 考試時常用的官方文件清單
+
+CKA 考試時是可以查看官方文件的，這裡是我整理的清單，包含了「搜索關鍵字」與「說明文件」的對應，熟悉後就能快速找到相關說明：「[CKA 常用的官方文件](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/CKA%20%E5%B8%B8%E7%94%A8%E7%9A%84%E5%AE%98%E6%96%B9%E6%96%87%E4%BB%B6.md)」。
+
+> 結語：這次的鐵人賽花了 32 天才全部寫完，比預期的 30 天多了兩天，不過也算是順利完賽了，希望這次的系列文章有達到最初設定的目標：幫助到 k8s 的初學者與準備 CKA 的讀者！
 
 ---
 
