@@ -1,5 +1,7 @@
 > 目前 CKA 筆記已經遷移至 [Kubernetes note](https://github.com/michaelchen1225/Kubernetes-note)，裡面除了 CKA 的內容外還有其他陸續新增的筆記，例如 Monitoring、Helm & Kustomize 等等，未來計畫持續更新其他內容，例如 Argo CD 等等！
 
+> 註：此 repo 不再更新，後續的修正、更新內容都會放在 [Kubernetes note](https://github.com/michaelchen1225/Kubernetes-note)
+
 ### 前言
 
 
