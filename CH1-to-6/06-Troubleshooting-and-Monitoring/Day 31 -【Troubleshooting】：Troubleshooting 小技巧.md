@@ -7,11 +7,11 @@
 
 * Master Node 的除錯
 
-* kube-apiserver 的除錯
+  * kube-apiserver 的除錯
 
 * Node 的除錯
 
-* kubelet、container runtime 的除錯
+  * kubelet、container runtime 的除錯
 
 * Event 的觀察
 
@@ -24,7 +24,7 @@
 
 我們將 Pod 建立後，最常使用 `kubectl get pod` 來查看 Pod 是否正常運作。如果發現錯誤時，有兩大方式可以了解問題的原因：
 
-1. **`kubectl describe pod <pod-name>`**
+### 1. **`kubectl describe pod <pod-name>`**
 
 這個指令會列出 Pod 的詳細資訊，需重點觀察的欄位有：
 
@@ -47,7 +47,7 @@
 * **Events**：可以看到 Pod 的建立過程中發生了什麼事，例如 Pod 被調度到哪個 Node、Image 下載是否成功、Container 啟動是否成功等等。
 
 
-2. **`kubectl logs <pod-name>`**
+### 2. **`kubectl logs <pod-name>`**
 
 這個指令可以查看 Pod 中 container 的 log，也就是 container 的 stdout 和 stderr。如果 Pod 啟動失敗是因為 container 內部的問題，可以用這個指令來了解原因。
 
@@ -181,14 +181,14 @@ kubectl logs svc/<service-name>
 
 * 在同一個 Pod 內，只能有「一個」容器 listen 在一個 port 上，例如已經有一個容器 listen 在 80 port 上，另一個容器就不能再 listen 80 port ，否則另一個容器啟動後會進入出現 Error。
 
-* 當兩個 Pod 之間連線失敗時，在確定兩個 Pod 的設定沒有問題後，如果還是無法連線，可以檢查一下 kube-proxy：
+
+* 若兩個 Pod 都用 Service 來 expose，但彼此連線失敗，同樣先確認一下 Service 是否有抓到 endpoints。
+
+* 接續上面的情境，如果 Service 的 Selector 確認都有設定正確但還是抓不到 ep，可以檢查 Kube-proxy 是否出錯：
 
 ```bash
 kubectl get daemonset -n kube-system kube-proxy
 ```
-> 如果發現 kube-proxy 出問題了，就用上面 Pod 的除錯方法來查看原因。
-
-* 接續上面的情境，若兩個 Pod 都用 Service 來 expose，可以確認一下 Service 是否有抓到 endpoints：
 
 **CNI 相關問題**
 

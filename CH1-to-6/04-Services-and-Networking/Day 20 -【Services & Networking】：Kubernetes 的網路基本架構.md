@@ -6,13 +6,11 @@
   * kube-proxy
   * CoreDNS
 
+一般在建立一個網路時，基本都會完成三大設定：設定IP、路由規則、DNS
 
+Kubernets 中存在一個虛擬網路，讓 Pod 彼此能互相溝通。
 
-一般在建立一個網域時，最基本的設定不外乎是以下幾個：設定IP、路由規則、DNS
-
-在 [Day 03](https://ithelp.ithome.com.tw/articles/10345660) 使用 kubeadm 安裝 cluster 與介紹 Service 時，我們知道 cluster 在建立後，會有一個**虛擬網路**供 cluster 內部溝通使用，例如我們能透過 Cluster IP 存取到 Pod 或 Service，而 Pod 之間也可以透過這個虛擬網路來溝通。
-
-虛擬網路同樣也需要搞定上面三大設定，今天我們就來探討一下 k8s 是如何處理這些設定的。
+而虛擬網路同樣也要搞定上面三大設定，今天我們就來探討一下 k8s 是如何處理這些設定的。
 
 ### Kubernetes 的網路基礎：CNI
 
@@ -20,21 +18,26 @@
 
 所謂的「基本需求」k8s有明確的定義：
 
-  * 讓整個 cluser 中的所有 **Pod** 能不靠 NAT 即可互相溝通
+  * 讓整個 cluser 中的所有 **Pod** 能不靠 NAT 即可互相溝通。
 
   * 部署在每個 Node 上的 agent(例如:daemonset、kubelet)能與該 Node 上的 **Pod** 溝通
 
-> 也就是說，需要在 clsuter 內部搭建一個網路，把 k8s 中的種種元件、資源串起來，這個「內部的網路」就是我們之前所提及的虛擬網路。
 
 要滿足上述需求並搭建出虛擬網路，cluster 中的 Pod 就必須有「最基本的」網路配置，例如：
 
   * 每個 Pod 要有自己獨立的 IP
 
-  * 虛擬網路介面
+  * 虛擬網路介面(veth-pair)
 
 其實就像是在現實中處理多台電腦的網路連線一樣，我們會幫電腦配置網路卡、規劃網段，並手動設定IP。
 
 只不過，cluster 中的「電腦」不是普通的多，一個 cluster 所擁有的 Pod 可能就有上百、上千個，而且又隨時會刪除或重啟，直接人工處理這些配置實在是強人所難。透過 CNI，我們就可以將這些繁雜的工作通通交給它來處理。
+
+雖然傳統的容器網路也能做到分配虛擬介面與IP、讓容器可以互相通訊，但這種通訊範圍僅限於單一主機上。
+
+K8s 通常由多節點組成，僅依賴傳統容器技術的網路模型，我們需額外處理跨節點的容器通訊，這是 CNI 出現的主要原因。
+
+綜合上述，CNI 會在 clsuter 內部搭建一個虛擬網路，把 k8s 中的 Pod 串起來，讓彼此能夠通訊。
 
 不過，k8s 並沒有提供預設的 CNI，而是定義出 CNI「該做甚麼、該如何做」，只要滿足這些規範，人人都可以按照這些規範來開發 CNI，並且以「插件(**Plugins**)」的形式讓使用者**彈性**的挑選，最終部署在 cluster 中。
 
@@ -49,6 +52,8 @@
   * Cilium
 
 > CNI 是 CNCF 的一個開源專案，可以在他們的 [Github](https://github.com/containernetworking/cni) 或是 [k8s 官方文件](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-network-model)上找到更多關於 CNI 的資訊。
+
+> 有關更底層的網路運作原理，可以參考這篇文章：[Kubernetes Networking Fundamentals](https://medium.com/techbeatly/kubernetes-networking-fundamentals-d30baf8a28c8)
 
 ### CNI 的相關設定檔
 
@@ -117,29 +122,30 @@ kube-proxy   2         2         2       2            2           kubernetes.io/
 
 ## 有了網路的基礎，然後呢？
 
-有了網路基礎後，當然就是互相連線嘛。和現實中的網路連線一樣，cluster 中的網路也會有「路由設定」，而這是透過 kube-proxy 來達成。另外因為 Pod 的生命週期短而導致 IP 經常變動，因此用了 Service 來統一代理 Pod 的流量。
+有了網路基礎後，當然就是互相連線嘛。但 Pod 的生命週期短而導致 IP 經常變動，因此用了 Service 來統一代理 Pod 的流量。當有流量到達 Service 時，需要有「路由規則」來轉發流量到正確的 Pod，而這個路由規則會由 kube-proxy 來維護。
 
-我們來看一下目前為止提到的三種網路元件：
+綜合以上，我們來看一下目前為止提到的三種網路元件：
 
-  * **CNI**：cluster 中的**網路基礎**，注重的是「**如何配置pod的基本網路**」，例如設定 Pod 的 IP、虛擬網路卡設定。
+  * **CNI**：cluster 中的**網路基礎**，注重的是「**如何配置 Pod 的基本網路**」，例如設定 Pod 的 IP、虛擬網路卡設定。
 
   * **Service**：提供了穩定的**統一介面**讓外界來訪問 Pod，例如 NodePort、ClusterIP、LoadBalancer。
 
-  * **kube-proxy**：負責處理 cluster 中的**路由規則**，注重的是「**如何轉發流量**」，例如iptables、ipvs。
+  * **kube-proxy**：負責維護 cluster 中的**路由規則**，時時監控 Servicve 與 Pod 的狀態與對應關係。注重的是「**如何轉發流量**」，例如iptables、ipvs。
 
-當一個 Pod 被建立，然後再為其產生一個 service 後，會發生：
+當一個 Pod 被建立，然後再為其產生一個 Service 後，會發生：
 
 * **CNI**：分配一個 IP 給 Pod，並完成虛擬網路介面等基礎設定。
 
-* **Service**：k8s 並不會自動的建立 service。如果使用者依需求自行幫 Pod 建立 service 後，kube-apiserver 會為這個 service 分配一個 IP。
+* **Service**：k8s 並不會自動的建立 service。如果使用者依需求自行幫 Pod 建立 service 後，kube-apiserver 會為這個 service 分配一個 IP，其流量的轉發目標為一個 Pod，這個 Pod 則稱為「endpoint」。
 
-* **kube-proxy**：隨時的觀察 service 與 endpoints 的狀態，當新的 service 被建立後，kube-proxy 會配置相對應的路由規則，讓整個 cluster 都能夠存取這個 service。當 service 被刪除後，kube-proxy 也會刪除相對應的路由規則。
+* **kube-proxy**：隨時的觀察 Service 與 endpoints 的狀態，當新的 service 被建立後，kube-proxy 會配置相對應的路由規則，讓整個 cluster 都能夠存取這個 service。當 service 被刪除後，kube-proxy 也會刪除相對應的路由規則。
 
 有了以上三者的配合後，「IP分配」、「路由規則」基本上就搞定了。(還有 DNS 的部分，我們後面會提到)
 
 > 至於建立 service 的介紹這裡就不再贅述，可以參考之前的[Day06](06-1-svc.md)
 
 ---
+
 > **Tips：kube-proxy 的種類**
 
 kube-proxy 有兩種 proxy mode 可選：
@@ -357,7 +363,7 @@ kubectl describe deploy -n kube-system coredns
 
 > 我們會建立出三個 Pod 與兩個 service，分別是：
 
-![test-env](28-1-test-env.png)
+![https://ithelp.ithome.com.tw/upload/images/20240907/20168692HTo0xcjNEN.png](https://ithelp.ithome.com.tw/upload/images/20240907/20168692HTo0xcjNEN.png)
 
 > 實作目的：用 default-test 這個 Pod 來存取不同的 service，看看 DNS 的解析成果。
 

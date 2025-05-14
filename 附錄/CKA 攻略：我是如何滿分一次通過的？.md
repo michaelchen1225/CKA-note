@@ -1,6 +1,6 @@
 ### 前言
 
-鐵人賽的最後，分享一下我在今年考過 CKA 的攻略：
+鐵人賽的最後，分享一下我在今年(2024)考過 CKA 的攻略：
 
 * CKA 簡介
 
@@ -14,9 +14,32 @@
 
 * 考試當天的流程
 
-* 考題 Brain Dump 與心得
-
 * 附錄：CKA 考試時常用的官方文件清單
+
+### **重要提醒**：CKA 2025 大改版
+
+最近(2025/4)在 Reddit 閒逛的時候，發現有篇文章討論了 CKA 考試內容的更新，原文連結在[這裡](https://www.reddit.com/r/CKAExam/comments/1jbi4iw/discussion_of_the_updated_feb_18th_2025_cka_exam/)，以下大概說明一下目前的改動有哪些：
+
+* 增加新的考試主題，例如 Helm、Kustomize、CRD、Gateway API、HPA 等等。
+* 考試難度增加，以前更多的是找文件上的 YAML 改改，現在更注重故障排除的能力。
+* 移除了一些必考題，例如 ETCD 的備份與還原。
+* 根據一些考生的留言，考試出現了他們在準備時沒看過、不熟的東西，例如使用 dpkg、CRD 等等。
+
+關於 Helm 與 Kustomize 的部分，筆者已經更新於鐵人賽的文章中，不過其他的部分就只能等到之後有空再來更新了。如果你是 2025/2/18 CKA 改版後的考生，請務必留意這些更動內容，Google 搜尋「 Updated Feb 18th 2025 CKA Exam」就能找到相關的討論與資訊。
+
+總而言之，新的考試題目與筆者在去年(2024)八月份已經截然不同，請考生要額外留意以下主題：
+
+* Helm & Kustomize
+* CRD
+* Gateway API
+* HPA、VPA
+* Gateway API
+* 安裝 Container Runtime
+
+好消息是報名考試後的模擬考 Killer.sh 也更新了他們的考題，所以還是能拿模擬考的分數來衡量自己是否準備好了。
+
+> 以筆者個人為例，由於沒有考過改版後的 CKA，因此會將考前的準備目標訂得更高一些：不斷的做模擬考，直到可以在規定時間內、僅看官方文件拿到模考滿分。
+
 
 ## CKA 簡介
 
@@ -92,8 +115,9 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 * *線上課程*：唯一推薦 Udemy 上的「[Certified Kubernetes Administrator (CKA) with Practice Tests](https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/?couponCode=ST11MT91624A)」，雖然全英文授課，不過語速偏慢、用詞簡單、口音不重，並且最重要的提供一堆的 Lab 練習，還可以反覆刷題。
 
-> 如果你的 Udemy 帳號已經買過其他課程了，建議再辦一支新的帳號再買這個CKA課程，印象中 Udemy 新帳號的第一堂課都 399 台幣，原價買這個課程要兩千多。
+> 如果你的 Udemy 帳號已經買過其他課程了，又不想等折扣，建議再辦一支新的帳號再買這個CKA課程，印象中 Udemy 新帳號的第一堂課都 399 台幣，原價買這個課程要兩千多。
 
+> **2025/4 更新**：Udemy 課程已經更新了新版 CKA 的考試內容，但筆者沒有考新版的 CKA 因此無法確定是否有實際幫助。
 
 #### **Step 2：刷題**
 
@@ -109,9 +133,7 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 付費的題目我只刷過 [Udemy 課程]((https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/?couponCode=ST11MT91624A))附贈的 Lab，如果你覺得免費的題庫刷完了還是不安心可以買這個，直接跳過它的課程開始做 Lab。
 
-> 授課單元搭配的題目通常都很簡單，主要是讓你熟悉操作，不過最後面還有三個模擬試題還是蠻有參考價值的，尤其是一些關於 jsonpath 的操作。
-
-刷題的過程中難免會出錯，我當時會針對錯誤的題目回去複習相關知識點，然後把這些知識點整理在一起，在模擬考或正式考試之前複習。另外我也會複習特定操作在官方文件中的位置，這裡是我整理的清單：「[CKA 常用的官方文件](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/CKA%20%E5%B8%B8%E7%94%A8%E7%9A%84%E5%AE%98%E6%96%B9%E6%96%87%E4%BB%B6.md)」。
+刷題的過程中難免會出錯，我當時會針對錯誤的題目回去複習相關知識點，然後把這些知識點整理在一起，在模擬考或正式考試之前複習。另外我也會複習特定操作在官方文件中的位置，這裡是我整理的清單：「[CKA 常用的官方文件](../附錄/CKA%20常用的官方文件.md)」。
 
 #### **Step 3：模擬考**
 
@@ -135,7 +157,7 @@ CKA 的考試費用為 395 美元，建議等到有折扣再報名會省很多�
 
 * 本來安排 8/17 考試，不過在八月初考模擬考時，第一次 68、第二次 110、第三次滿分，所以果斷將考試提前到 8/4，最後正式考試時也是拿到滿分。
 
-此外，不用擔心會考「安裝」 CNI、Ingress controller、metrics server 等等需要背「網址」的操作，需要的話題目會先安裝好，你只需要懂如何操作即可。
+此外，不用擔心會考「安裝」 CNI、Ingress controller、metrics server 等等需要背「網址」的操作，需要的話題目會先安裝好或直接給你，你只需要懂如何操作即可。
 
 *以 metrics server 為例，考試時只需知道如何使用 `kubectl top` 即可，環境會先安裝好 metrics server*。
 
@@ -293,54 +315,10 @@ kubectl config use-context <cluster-name>
 
 [CKA: Certified Kubernetes Administrator](https://www.credly.com/badges/8bbbabf9-6f94-45e0-85db-1ea8e9d105e9/public_url)
 
-## 考題 Brain Dump 與心得
-
-這次的 CKA 考試總共有 17 題，這裡盡量回憶了 17 題的考點：
-
-> 非實際考題順序
-
-1. 建立 hostpath PV，然後建立 PVC 掛到 Pod 裡面。
-
-2. 建立 PVC 並且掛到 Pod。
-
-3. 某個 Worker Node 狀態是 NotReady，原因是 kubelet 沒有啟動，重啟即可。
-
-4. 升級 cluster ，只需升級 Master Node。
-
-5. 備份與還原 etcd。 
-
-6. RBAC：建立 clusterrole，bind 到一個 Service Accout。
-
-7. Scale up 一個 Deployment 到 4 個 replicas。
-
-8. 用 label selector 搭配 `kubectl top` 找出使用最多 cpu 的 Pod。
-
-9. 建立內含兩個容器的 Pod。
-
-10. 建立一個函有 Sidecar 容器的 Pod，使用 emptyDir 在兩個容器之間共享資料。
-
-11. Drain 一個 Node。
-
-12. 找出某個 cluster 目前 ready 且可以 schedule 的 Node數量，將數量寫入一個檔案。
-
-13. 建立 Network Policy。(不複雜，蠻基本的)
-
-14. 建立 Ingress。(也不複雜)
-
-15. 看某個 Pod 的 log，將 error 的訊息紀錄到一個檔案。
-
-16. 在 Deployment 中開放 80 port 並設定 port name，然後用 NodePort Service 來 expose。 
-
-17. 用 Node Selector 安排 Pod 到某個 Node。
-
-> 其實 CKA 的考題真的比模擬考簡單的多，大家如果模擬考 OK 了就放心去考吧~
-
 
 ## 附錄：CKA 考試時常用的官方文件清單
 
-CKA 考試時是可以查看官方文件的，這裡是我整理的清單，包含了「搜索關鍵字」與「說明文件」的對應，熟悉後就能快速找到相關說明：「[CKA 常用的官方文件](https://github.com/michaelchen1225/CKA-note/blob/main/%E9%99%84%E9%8C%84/CKA%20%E5%B8%B8%E7%94%A8%E7%9A%84%E5%AE%98%E6%96%B9%E6%96%87%E4%BB%B6.md)」。
-
-> 結語：這次的鐵人賽花了 32 天才全部寫完，比預期的 30 天多了兩天，不過也算是順利完賽了，希望這次的系列文章有達到最初設定的目標：幫助到 k8s 的初學者與準備 CKA 的讀者！
+CKA 考試時是可以查看官方文件的，這裡是我整理的清單，包含了「搜索關鍵字」與「說明文件」的對應，熟悉後就能快速找到相關說明：「[CKA 常用的官方文件](../附錄/CKA%20常用的官方文件.md)」。
 
 ---
 

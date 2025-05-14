@@ -1,15 +1,27 @@
-# Day 12 -【Storage】：ConfigMap & Secret
+# 【Storage】：ConfigMap & Secret
 
-### 今日目標
+## 目錄
 
-* 了解 configMap 與 Secret 的用途
-* 建立 configMap、Secret
-  * 存放 key-value 或檔案
-  * 用 Secret 存放 private image registry 的登入資訊
-* 在 Pod 中引入 configMap、secret 做為環境變數或指令參數
-* 在 Pod 中使用 Secret 來拉取 private registry 的 image
+* [ConfigMap](#configmap)
 
-我們在 [Day 5](https://ithelp.ithome.com.tw/articles/10345967) 曾經介紹過 Pod 中的環境變數，如果要定義多個環境變數，就在 `spec.containers.env[]` 中加入多個 key-value 即可，例如：
+  * [在 Pod 中 使用 ConfigMap 的 key-value 作為環境變數](#在-pod-中-使用-configmap-的-key-value-作為環境變數)
+
+  * [在指令中引入 ConfigMap 作為參數](#在指令中引入-configmap-作為參數)
+
+* [Secret](#secret)
+
+  * [建立 Opaque Secret](#建立-opaque-secret)
+
+  * [在 Pod 中 使用 Opaque Secret 的 key-value 作為環境變數](#在-pod-中-使用-opaque-secret-的-key-value-作為環境變數)
+
+  * [建立 Docker config Secrets --- 拉取 private registry](#建立-docker-config-secrets)
+
+  * [Secret 的安全性](#secret-的安全性)
+
+---
+
+在之前曾介紹過 Pod 中的環境變數，如果要定義多個環境變數，就在 `spec.containers.env[]` 中加入多個 key-value 即可，例如：
+
 ```yaml
 ......
 containers:
@@ -30,7 +42,7 @@ containers:
 
 這時候就可以使用 configMap 和 secret 來達成這個目的。除了環境變數外， configMap 和 secret 也可以用來設定「command-line 參數」、存放「檔案」等等。
 
-(configMap 與 secret 可以和 volumn 搭配使用，不過這部分會等到明天介紹 Volume 時再提到)
+(configMap 與 secret 可以和 volumn 搭配使用，這部分會等到下一篇介紹 Volume 時再提到)
 
 ### ConfigMap
 

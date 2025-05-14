@@ -1,7 +1,16 @@
 ### 今日目標
 
-* drain & cordon 的操作
-* Upgrade kubeadm cluster
+* [Pod eviction timeout](#pod-eviction-timeout)
+
+* [Drain](#drain)
+
+* [Cordon](#corden)
+
+* [Cluster Upgrade strategy](#cluster-upgrade-strategy)
+  * [STEP 1. 升級 Master Node](#step-1-升級-master-node)
+  * [STEP 2. 升級 Worker node](#step-2-升級-worker-node)
+
+* [番外篇：更換 container runtime](#番外篇更換-container-runtime)
 
 今天是「Cluster Architecture, Installation & Configuration」的第一篇，關於 cluster architecture & installation 的部分，我們已經在 [Day 02](https://ithelp.ithome.com.tw/articles/10345505) & [Day 03](https://ithelp.ithome.com.tw/articles/10345660) 中介紹過了，今天要來談談 cluster 的**升級**。
 
@@ -457,6 +466,98 @@ node01         Ready,SchedulingDisabled   <none>          2d15h   v1.31.1
 kubectl uncordon node01
 ```
 
+## 番外篇：更換 container runtime
+
+雖然目前主流的 container runtime 是 containerd，但有些使用者會試試看使用 [CRI-O](https://cri-o.io/) 來取代 containerd，原因可能是 CRI-O 是專門為 k8s 設計的 container runtime，並且 CRI-O 的功能比 containerd 更加精簡，這樣可以減少不必要的資源浪費。
+
+如果你想要從 containerd 換成 CRI-O，關鍵流程是：安裝 CRI-O，並修改 kubelet 的參數，把 socket 的位置改成 CRI-O 的 socket，然後重啟 kubelet 即可。具體流程如下：
+
+> 如果要整個 cluster 都換成 CRI-O，則需要逐一更新每個 Node 上的 kubelet，因此也會用到 cordon 和 drain 的指令。
+
+* Cordon & drain node01：
+
+```bash
+kubectl cordon node01
+kubectl drain node01 --ignore-daemonsets --force
+```
+
+* sssh 到 node01：
+```bash
+ssh node01
+```
+
+* 停止 containerd：
+
+```bash
+sudo systemctl stop containerd
+sudo systemctl disable containerd
+```
+
+* 設定 CRI-O 的版本做為變數：
+
+```bash
+# 建議與 k8s 的版本一致
+CRIO_VERSION=v1.32
+```
+
+* 加入 CRI-O 的 repository：
+
+>  以下是 deb 系列的安裝方式，其他版本可以參考[官網](https://cri-o.io/)：
+
+```bash
+curl -fsSL https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/Release.key |
+    gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/$CRIO_VERSION/deb/ /" |
+    tee /etc/apt/sources.list.d/cri-o.list
+```
+
+* 安裝 CRI-O：
+
+```bash
+apt-get update
+apt-get install -y cri-o 
+```
+> 遇到關於 crictl.yaml 的提示時，直接按 Y 即可。不小心按到 enter 也沒關係，後續自行修改 `/etc/crictl.yaml`、將 socket 的位置改成 `/var/run/crio/crio.sock` 即可。
+
+* 啟用並確認 CRI-O 的狀態：
+
+```bash
+sudo systemctl enable crio
+sudo systemctl start crio
+sudo systemctl status crio
+```
+
+* 修改 kubelet 的參數：
+
+```bash
+sudo sed -i 's|/run/containerd/containerd.sock|/var/run/crio/crio.sock|g' /etc/default/kubelet 
+```
+
+* 重啟 kubelet：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+* 回到 Master Node，確認 node01 的 container runtime 已經變成 CRI-O：
+
+```bash
+kubectl describe node node01 | grep -i runtime
+```
+
+```text
+  Container Runtime Version:  cri-o://1.32.3
+```
+
+* 如果看到上面的提示，就代表 node01 的 container runtime 已經變成 CRI-O 了。現在 uncordon node01：
+
+```bash
+kubectl uncordon node01
+```
+
+> 如果有多個 Worker Node，則需要重複以上的步驟，將每個 Worker Node 上的 container runtime 換成 CRI-O。
 ### 今日小結
 
 今天示範了如何升級一個使用 kubeadm 建立的 cluster，如果是正在準備 CKA 的讀者，今天的內容基本必考，忘記更新步驟其實沒關係，反正考試可以看[官網](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/)，重點是熟悉整個升級的流程。

@@ -1,25 +1,40 @@
-# Day 09 -【Basic Concept】：Service
+## 【Basic Concept】：Service
 
-### 今日目標
+## 目錄
 
-* Service 的用途
+* [為什麼需要 Service](#為什麼需要-service)
 
-* Service 的種類
-  * ClusterIP
-  * NodePort
-  * LoadBalancer
-  * ExternalName
+* [Service 簡介](#service)
 
-* 特殊的 Service：Multi-Port Service & Headless Service
+* [Service 的 domain name](#service-的-domain-name)
 
-* kubectl port-forward
+* [Service 的種類](#service-的種類)
+
+  * [ClusterIP](#clusterip)
+
+  * [NodePort](#nodeport)
+
+  * [ExternalName](#externalname)
+
+  * [LoadBalancer](#loadbalancer)
+
+* [Service 的基本實作：Cluster IP & nodePort](#service-的基本實作)
+
+* [Multi-port Service](#multi-port-service)
+
+* [Headless Service](#headless-service)
+
+* [kubectl port-forward](#kubectl-port-forward)
+
+---
+
 ### 為什麼需要 Service
 
 在 [Day 03](https://ithelp.ithome.com.tw/articles/10345660) 中，我們使用 flannel 或 calico 來作為 CNI，作用是建立**虛擬網路**供 cluster 內部溝通使用。
 
 當 Pod 被建立時，就會被分配一個**虛擬IP**，但是這個虛擬IP有兩個致命傷：
 
-   1. Pod 的生命週期短，當 Pod 重啟時，IP 也會跟著改動。讓使用者隨時注意 IP 的變動顯然是不切實際的。
+   1. Pod 的生命週期短，當 Pod 重啟時，IP 也會跟著改動。讓存取者隨時注意 IP 的變動顯然是不切實際的。
    2. 這個虛擬 IP 只能在 cluster 內部使用，無法從外部存取。
 
 為了解決這兩個問題，就需要 Service 的幫忙了。
@@ -113,7 +128,7 @@ spec:
 
 #### LoadBalancer
 
-這種類型的 Service type，顧名思義會把外界的流量做附載平衡。這會使用到 cluster 外部實際存在的負載平衡設備，例如  AWS ELB 或 GCP Load Balancer。所以這種 Service type 很常被應用在雲端上。
+這種類型的 Service type，顧名思義會把外界的流量做附載平衡。這會使用到 cluster 外部實際存在的負載平衡設備，例如  AWS ELB 或 GCP Load Balancer，所以這種 Service type 很常被應用在雲端上。
 
 ### Service 的基本實作
 
@@ -445,7 +460,7 @@ nginx welcome page
 
 * 測試完後使用 `Ctrl + C` 來結束 port-forward。
 
-最後說明一下，為了讓外部能夠存取到 service ，其實 LoadBalancer 會比 nodePort 來的理想，不過所需的練習環境較複雜，通常在雲端環境才有相對應的資源，有興趣的話可以參考[官方文件](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)，這裡就不實際演示了。
+最後說明一下，為了讓外部能夠存取到 service ，其實 LoadBalancer 會比 nodePort 來的理想，不過所需的練習環境較複雜，有興趣的話可以參考[官方文件](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)。
 
 ### 今日小結
 

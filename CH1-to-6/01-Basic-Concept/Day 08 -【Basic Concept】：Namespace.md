@@ -1,14 +1,16 @@
-# Day 08 -【Basic Concept】：Namespace
+## 【Basic Concept】：Namespace
 
-### 今日目標
+## 目錄
 
-* 了解 Namespace 的用途
+* [什麼是 Namespace？](#什麼是-namespace)
 
-* Namespace 的基本操作
-  * 建立 Namespace
-  * 在特定 Namespace 中進行操作
+* [預設的四大 Namespace](#預設的四大-namespace)
 
-### 什麼 Namespace?
+* [建立 Namespace](#建立-namespace)
+
+* [namespace 的基本操作](#namespace-的基本操作)
+
+### 什麼是 Namespace？
 
 假如一個公司讓所有部門共用同一個 cluster，可能會有一些問題：
 
@@ -16,7 +18,7 @@
    * 部門 A 的服務不小心與部門 B 的服務撞名
    * 資源的分配不均，導致部門 A 的服務佔用了部門 B 的資源
 
-你可能會說: 那就讓每個部門都有自己的 cluster 不就好了？但是，這樣可能會造成資源的浪費，而且溝通與資料共享並不方便。其實除了建立個別的 cluster 之外，使用「Namespace」就足以解決上述面臨的問題。
+你可能會說：那就讓每個部門都有自己的 cluster 不就好了？但是，這樣可能會造成資源的浪費，而且溝通與資料共享並不方便。其實除了建立個別的 cluster 之外，使用「Namespace」就足以解決上述面臨的問題。
 
 我們可以這樣描述 Namespace：
 

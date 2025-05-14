@@ -1,15 +1,20 @@
-# Day 06 -【Basic Concept】：ReplicaSet、Deployment & StatefulSet
+## 【Basic Concept】：ReplicaSet、Deployment & StatefulSet
 
-### 今日目標
+## 目錄
 
-* Pod scaling 的概念與指令
-  * kubeclt scale
+* [Pod scaling](#pod-scaling)
 
-* Label 與 Label Selector
+  * [ReplicSet](#replicset)
 
-* ReplicaSet、Deployment & StatefulSet
-  * Stateful vs Stateless
+  * [Label](#label)
 
+  * [Deployment](#deployment)
+
+  * [Deployment 中的 ReplicaSet](#deployment-中的-replicaset)
+
+  * [StatefulSet](#statefulset)
+
+---
 
 在前面兩天了解了 Pod 的概念與操作後，我們來想像一個情況: 假設服務僅由一個 Pod 來提供，可能會發生那些情況？
 

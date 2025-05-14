@@ -1,21 +1,22 @@
-### 今日目標
+# Helm
 
-* 了解 Helm 的用途與架構
+### 目錄
 
-* 安裝 Helm
+* [什麼是 Helm？](#什麼是-helm)
 
-* Helm 的實作
-  * 建立 Chart
-  * 透過 Chart 部署應用服務
-  * 更新 Chart
+* [安裝 Helm](#安裝-helm)
 
-* 部署他人分享的 Chart
+* [Helm 的實作](#helm-的實作建立並部署第一個-chart)
 
-* Helm 的常用指令彙整
+* [修改 Helm 的 value 設定](#修改-helm-的-value-設定)
 
-今天是「Basic Concept」章節的最後一篇，我們來看一個好用的套件管理工具：Helm。
+* [打包 Chart 並分享](#打包-chart-並分享)
 
-> 本日內容不屬於 CKA 考試範圍。
+* [部署他人分享的 Chart](#部署他人分享的-chart)
+
+* [建立自己的 helm chart repository：以 Gitlab 為例](#建立自己的-helm-chart-repository以-gitlab-為例)
+
+* [Helm 的常用指令彙整](#helm-的基本指令彙整)
 
 ### 什麼是 Helm？
 
@@ -25,7 +26,7 @@ Helm 是一項 CNCF 的專案，能將 k8s 中的應用打包起來，方便我�
 
 * 因為有很多的 yaml，所以部署整套應用時就要一直複製貼上、複製貼上，非常麻煩。
 
-* 因為部署環境的不同，可能需要針對應用服務做一些微調。但如果這些微調的 yaml 都散落在不同的地方，就會讓管理變得很困難。
+* 因為部署環境的不同，可能需要針對應用服務做一些微調，例如 replica 數量、image tag 等等的小修改。但如果需要微調的 yaml 數量很多，雖然手動設定難度不高，但容易發生人為疏失，且很沒效率。
 
 * 當整套應用需要升級時，一堆的 yaml 很難有效率的做到統一的管理與升級。
 
@@ -60,6 +61,11 @@ helm version
 version.BuildInfo{Version:"v3.15.4", GitCommit:"fa9efb07d9d8debbb4306d72af76a383895aa8c4", GitTreeState:"clean", GoVersion:"go1.22.6"}
 ```
 
+> 若有需要，可以使用以下指令啟用 helm bash completion：
+```bash
+helm completion bash > /etc/bash_completion.d/helm
+```
+
 ### Helm 的實作：建立並部署第一個 Chart
 
 我們來實際打包一個簡單的應用服務，並透過 Helm 來部署。
@@ -72,7 +78,8 @@ git clone https://github.com/michaelchen1225/helm-demo.git
 cd ./helm-demo
 ```
 
-此目錄就是一個可用的 Helm chart，我們先看一下這個 Helm chart 的基本目錄結構：
+此目錄就是一個 Helm chart 的基本專案結構：
+
 ```text
 helm-demo
 |-- Chart.yaml
@@ -91,7 +98,7 @@ helm-demo
   * NOTES.txt：這個檔案會在部署 chart 時顯示，用來提醒使用者一些重要資訊。
 * **values.yaml**：用來設定一些參數，這些參數會被套用在 templates 中使用，例如：image 的版本、replicas 的數量等。當我們需要對不同部署環境微調應用服務時，修改這個檔案就可以了。
 
-> 上述為一個 helm chart 必須的基本專案結構，該結構可以用 `helm create` 來初始化，例如：
+> 總之，如果想要打包一個 helm chart，上面就是標準的基本專案結構，該結構可以用 `helm create` 來生成，例如：
 ```bash
 helm create helm-demo-2
 ```
@@ -337,11 +344,12 @@ kubectl get deploy first-chart-nginx-deploy -o jsonpath='{.spec.template.spec.co
 nginx:1.16
 ```
 
-也可以使用 `--values` 來指定一個 yaml 檔案來取代原本的 values.yaml，這樣就能更方便的管理不同環境的設定：
+也可以使用 `--values` 來指定一個新的 yaml 檔案來覆蓋原本 values.yaml 中的某些設定，這樣就能更方便的管理不同環境的設定：
 
 ```bash
 helm install new-value-chart ./helm-demo --values <path-to-other-values.yaml>
 ```
+> 若新 values.yaml 沒有針對舊 values.yaml 中的某些設定做修改，就會沿用舊的設定。可以在安裝 helm install 時加上 `--dry-run` 來驗證一下。
 
 ### 打包 Chart 並分享
 
@@ -355,7 +363,64 @@ helm package ./helm-demo
 Successfully packaged chart and saved it to: /root/helm-demo-0.1.0.tgz
 ```
 
-### 建立 helm chart repository：以 Gitlab 為例
+
+### 部署他人分享的 Chart
+
+Helm 的 chart 也有類似 Github 的平台來分享，來源分為以下兩者：
+
+1. Artifact Hub
+2. 自行加入的 repository
+
+**安裝 Artifact Hub 上的 Chart**
+
+* 前往 [Artifact Hub](https://artifacthub.io/) 搜尋你想要的 Chart，例如：`nginx`。點進去後可以看到這個 Chart 的相關資訊，包含了安裝方式、相依性等。
+
+**加入他人的 repository**
+
+* 使用以下指令加入 repository：
+```bash
+helm repo add <repo-name> <repo-url>
+```
+
+* 加入後，就可以從這個 repository 安裝 Chart：
+```bash
+helm install <release-name> <repo-name>/<chart-name>
+```
+
+* 安裝前如果想先確認該 chart 的 values.yaml，可以使用 `helm show values`：
+```bash
+helm show values <repo-name>/<chart-name>
+```
+
+* 如果來源 repo 有釋出更新，我們在更新之前，必須先更新來源 repo 的狀態：
+```bash
+helm repo update
+```
+> 就像平常下載前要先 apt update 一樣
+
+* 如果想要查看目前已加入的 repository，可以使用：
+```bash
+helm repo list
+```
+
+* 如果想要移除 repository，可以使用：
+```bash
+helm repo remove <repo-name>
+```
+
+* 在已經加入的 repository 中以關鍵字搜尋 Chart：
+
+```bash
+helm search repo <key-words>
+```
+
+
+
+
+
+### 建立自己的 helm chart repository：以 Gitlab 為例
+
+以下我們來實際建立一個自己的 helm chart repo，來實際操作上面提到的指令。
 
 一個標準的 helm chart repository 應該長這樣：
 
@@ -377,9 +442,12 @@ charts/
 mkdir helm-repo
 ```
 
-* 進入 helm-repo 後先打包 chart：
+* 在 Gitlab 上新增專案，叫做 helm-repo ，並把相關的設定處理好，讓本地的 helm-repo 能夠推送 commit 到 Gitlab 上。
+
+* 完成 Git 的設定後，cd 進入 helm-repo ，把 helm-demo 打包成 .tgz：
 
 ```bash
+cd helm-repo
 helm package /root/helm-demo
 ```
 ```text
@@ -389,10 +457,10 @@ Successfully packaged chart and saved it to: /root/helm-repo/helm-demo-0.1.0.tgz
 * 生成 index.yaml：
 
 ```bash
-helm repo index 
+helm repo index .
 ```
 
-* 新增 .gitlab-ci.yml，讓 Gitlab CI 在 push 後自動將 chart 丟上去：
+* 新增 .gitlab-ci.yml，讓 Gitlab CI 在 push 後自動將打包檔丟上去：
 
 ```yaml
 stages:
@@ -404,21 +472,24 @@ upload:
   script:
     - CHART=$(ls | grep .gz)
     - echo $CHART
-    - 'curl --fail-with-body --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@helm-demo-0.1.0.tgz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/stable/charts"'
+    - 'curl --fail-with-body --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@$CHART" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/stable/charts"'
 ```
 
 * 提交變更到 Gitlab、等待 CI 完成後，前往左邊選單中的 `Deploy -> Package registry` 查看丟上去的 helm package：
 
-  ![alt text](image-2.png)
+  ![https://ithelp.ithome.com.tw/upload/images/20250206/20168692KEU5ey4qS5.png](https://ithelp.ithome.com.tw/upload/images/20250206/20168692KEU5ey4qS5.png)
 
 
-* 將這個 repository 加入 helm repo list 當中：
+* 將遠端的 helm repo 加入到 helm repo list 當中：
 
 ```bash
-helm repo add  my-helm-repo https://gitlab.com/api/v4/projects/<project-id>/packages/helm/stable
+helm repo add  my-repo https://gitlab.com/api/v4/projects/<project-id>/packages/helm/stable
 ```
+
 > gitlab 的 project-id 可以在 repo 首頁的右上角找到：
-![alt text](image-1.png)
+
+  ![https://ithelp.ithome.com.tw/upload/images/20250206/20168692IFQLolDpKE.png](https://ithelp.ithome.com.tw/upload/images/20250206/20168692IFQLolDpKE.png)
+    
 
 * 加入後 update 一下：
 
@@ -461,164 +532,13 @@ kubectl get all -n test-helm-demo
 * 若有修改原本的 chart，記得也要一起修改 Chart.yaml 中的 version 再使用 `helm package` 重新打包。
 
 
-
-### 部署他人分享的 Chart
-
-Helm 的 chart 也有類似 Github 的平台來分享，來源分為以下兩者：
-
-1. Artifact Hub
-2. 自行加入的 repository
-
-**安裝 Artifact Hub 上的 Chart**
-
-* 前往 [Artifact Hub](https://artifacthub.io/) 搜尋你想要的 Chart，例如：`nginx`。點進去後可以看到這個 Chart 的相關資訊，包含了安裝方式、相依性等。
-
-**安裝自行加入的 repository**
-
-* 使用以下指令加入 repository：
-```bash
-helm repo add <repo-name> <repo-url>
-```
-
-* 加入後，就可以從這個 repository 安裝 Chart：
-```bash
-helm install <release-name> <repo-name>/<chart-name>
-```
-
-* 如果想要更新 repository 的資訊，可以使用：
-```bash
-helm repo update
-```
-
-* 如果想要查看目前加入的 repository，可以使用：
-```bash
-helm repo list
-```
-
-* 如果想要移除 repository，可以使用：
-```bash
-helm repo remove <repo-name>
-```
-
-> 有關其他的 helm 指令用法，可以用善用 `-h` 來查看。
-
 ### Helm 的基本指令彙整
 
 
-以下將 helm 的常用指令彙整，方便日後查詢：
+以下為 helm 的常用指令彙整，方便日後查詢：
 
-> **注意**：不同 namespace 的操作請用 `-n` 指定，以下預設為 default namespace。
+> [Helm Cheat Sheet](../../../kustomize-and-helm/helm-cheat-sheet.md)
 
-初始化一個 Chart，生成基本的目錄結構：
-```bash
-helm create <chart-name>
-```
-
-檢查 chart 的配置是否正確：
-```bash
-helm lint <chart-path>
-```
-
-查看 chart 的 template 是否符合預期：
-```bash
-helm template <chart-path>
-```
-
-安裝 Chart：
-```bash
-helm install <release-name> <chart-name>
-```
-
-從特定 repo 安裝 Chart：
-```bash
-helm install <release-name> <repo-name>/<chart-name>
-```
-
-安裝 Chart 並修改 value：
-```bash
-helm install <release-name> <chart-name> --set <key>=<value>
-```
-
-安裝 Chart 並帶入新的 value.yaml：
-```bash
-helm install <release-name> <chart-name> --values <path-to-other-values.yaml>
-```
-
-把 Chart 安裝在一個全新的 namespace：
-```bash
-helm install <release-name> <chart-name> -n <new-namespace> ----create-namespace
-```
-
-列出某個 namespace 中的 release：
-```bash
-helm list -n <namespace>
-```
-
-列出所有 namespace 中的 release：
-```bash
-helm list --all-namespaces
-```
-
-解除安裝 Chart：
-```bash
-helm uninstall <release-name>
-```
-
-列出已安裝的 release：
-```bash
-helm list
-```
-
-更新一個 release：
-```bash
-helm upgrade <release-name> <chart-name>
-```
-
-更新一個 release，且 chart 來源為遠端 repo：
-```bash
-helm repo update
-helm upgrade <release-name> <repo-name>/<chart-name>
-```
-
-查看某個 release 的版本紀錄：
-```bash
-helm history <release-name>
-```
-
-Rollback 一個 release 到指定 REVISION：
-```bash
-helm rollback <release-name> <revision>
-```
-
-檢查兩次 REVISION 的差異：
-```bash
-helm diff revision <release-name> <revision-1> <revision-2>
-```
-
-打包 Chart 成一個 tgz 檔：
-```bash
-helm package <chart-name>
-```
-
-加入新的 repo：
-```bash
-helm repo add <repo-name> <repo-url>
-```
-
-更新 repo：
-```bash
-helm repo udpate
-```
-
-列出目前可用的 repo：
-```bash
-helm repo list
-```
-
-移除 repo：
-```bash
-helm repo remove <repo-name>
-```
 
 ### 今日小結
 
@@ -639,4 +559,3 @@ helm repo remove <repo-name>
 * [Helm Charts Tutorial: A Simple Guide for Beginners](https://devopscube.com/create-helm-chart/)
 
 * [Get started with GitLab's Helm Package Registry](https://about.gitlab.com/blog/2021/10/18/improve-cd-workflows-helm-chart-registry/)
-

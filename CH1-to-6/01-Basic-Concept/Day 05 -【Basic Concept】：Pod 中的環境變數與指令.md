@@ -1,12 +1,17 @@
-# Day 05 -【Basic Concept】：Pod 中的環境變數與指令
+## 【Basic Concept】：Pod 中的環境變數與指令
 
-### 今日目標
+## 目錄
 
-* 設定 Pod 的環境變數
+* [Pod 中的環境變數](#pod-中的環境變數)
+  * [使用 downward API 將 Pod 的資訊當作環境變數](#使用-downward-api-將-pod-的資訊當作環境變數)
 
-* 設定 Pod 的指令 (command) 與參數 (arguments)
+* [Pod 中的指令 (command) 與參數 (arguments)](#pod-中的指令-command-與參數-arguments)
 
-###  Pod 中的環境變數
+* [Command & Arguments in Dockerfile](#command--arguments-in-dockerfile)
+
+* [Command & Arguments in Pod](#command--arguments-in-pod)
+
+##  Pod 中的環境變數
 
 在許多應用場景中，「環境變數( environment variables )」是一種相當常見設定，而環境變數通常由一對 key-value 組成，例如 USER=root。
 
@@ -74,12 +79,15 @@ containers:
 kubectl run env-demo-3 --image busybox --env="USER=Mike" --env="PASSWORD=123456" --command -- sleep 300
 ```
 
-不過，當需要的環境變數開始變多時這樣設定非常沒有效率，且不易閱讀。這個問題我們暫且留到後續章節，介紹 ConfigMap 時再來解決。
+不過，當需要的環境變數開始變多時，這樣設定非常沒有效率且不易閱讀。這個問題我們暫且留到後續章節，介紹 ConfigMap 時再來解決。
 
-### 將 Pod 的資訊當作環境變數
+### 使用 downward API 將 Pod 的資訊當作環境變數
 
-當 Pod 跑起來後，我們可以將一些與 Pod 相關的變數當作環境變數，例如 Pod 的名稱、IP 等等，例如：
+當 Pod 跑起來後，我們可以將一些與 Pod 相關的資訊，透過「downward API」引入容器中當作環境變數，例如 Pod 的名稱、IP 等等。
 
+> **downward API**：允許容器在不經過 k8s client 端或 api-server 的情況下取得 Pod 的資訊。
+
+以下是一個簡單的範例：
 ```yaml
 # env-from-pod-info.yaml
 apiVersion: v1
@@ -135,7 +143,6 @@ kubectl logs env-from-pod-info
 node01 env-from-pod-info default 192.168.1.9
 ```
 
-
 ### Pod 中的指令 (command) 與參數 (arguments)
 
 如果用用指令建立一個 busybox 的 Pod ，且不帶任何參數，看看會發生什麼事：
@@ -180,14 +187,14 @@ kubectl exec -it busybox -c <container_name> -- /bin/sh
 
 **kubectl exec 選項解釋**
 
-* -i: 進入互動模式
-* -t: 分配一個tty(終端機)
+* -i：進入互動模式
+* -t：分配一個tty(終端機)
 
 ***
 
 底下我們就來談談 command 與 arguments 在 Pod 中的設定。不過在此之前，我們來看看 Dockerfile 中的是怎麼設定的。
 
-### Command & Arguments in Dockerfile
+## Command & Arguments in Dockerfile
 
 我們知道 Linux 指令的基本格式是：
 ```bash
@@ -224,7 +231,7 @@ docker run --name echo-1 michaelchenn1225/my-echo:v1
 1
 ```
 
-但是如果想要讓容器輸出「hello」，就必須把「echo hello」加在「ctr run」最後面，取代原本的「echo 1」:
+但是如果想要讓容器輸出「hello」，就必須把「echo hello」加在指令的最後面，取代原本的「echo 1」:
 ```bash
 docker run --name echo-hello michaelchenn1225/my-echo:v1 echo hello
 ```
@@ -273,7 +280,7 @@ HOSTNAME=1ffc3b13a131
 HOME=/root
 ```
 
-### Command & Arguments in Pod
+## Command & Arguments in Pod
 
 了解了 Dockerfile 中的 command 與 arguments 後，我們來看看 Pod 中的設定：
   
@@ -385,7 +392,7 @@ CMD | args
 也就是在 Pod 的 yaml 中，command 欄位會取代 image 的 `ENTRYPOINT`，而 args 會取代原先 image 的 `CMD`。
 
 ---
-> **Tips**：執行長指令或多重指令
+> **Tips**：執行「長指令」或「多重指令」
 
 如果要執行一個長指令，在 yaml 中一直用雙引號格開會相當麻煩，因此可以使用以下小技巧：
 
@@ -399,6 +406,7 @@ spec:
   - name: long-command
     image: busybox
     command: ["/bin/sh", "-c", "while true; do echo hello; sleep 10; done"]
+# 透過 /bin/sh -c 來執行一長串指令，比起一個一個用雙引號隔開，現在只需要隔開 /bin/sh 與 -c 即可。
 ```
 
 有的時候我們會想執行多個指令，例如先輸出 hello，再等待 300 秒，可以這樣寫：
@@ -417,7 +425,7 @@ spec:
 ***
 
 
-### 今日小結
+## 今日小結
 
 今天透過 Dockerfile 與 yaml 的比較，來介紹 Pod 中的 command 與 arguments 的設定方式。總之，使用「/bin/sh -c」是相當常用且方便的技巧，可以讓我們在 yaml 中更方便的設定指令。
 
@@ -426,7 +434,7 @@ spec:
 *建立一個 Pod，包含兩個容器*：
 
 * 容器：
-  * 取名為 echo-user，使用 busybox 作為image ，定義一個環境變數為「myUser=u1」，先等待 10 秒後再將環境變數 u1。
+  * 取名為 echo-user，使用 busybox 作為image ，定義一個環境變數為「myUser=u1」，先等待 10 秒後再將環境變數 u1 輸出。
   * 取名為 echo-user-2，使用 busybox 作為image ，定義一個環境變數為「myUser=u2」，每隔 1 秒將 u2 輸出。
 
 * 建立 yaml 樣本：
@@ -499,3 +507,5 @@ u2
 * [CrashLoopBackOff status using busybox images](https://www.reddit.com/r/kubernetes/comments/jp2ia9/crashloopbackoff_status_using_busybox_images/):
 
 * [Kubernetes: Command and Arguments in Pod](https://yuminlee2.medium.com/kubernetes-command-and-arguments-in-pod-c3f1be61ba1a)
+
+* [Expose Pod Information to Containers Through Environment Variables](https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/)

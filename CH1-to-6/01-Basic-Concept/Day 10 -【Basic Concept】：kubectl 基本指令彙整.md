@@ -1,20 +1,25 @@
-# Day 10 -【Basic Concept】：kubectl 基本操作彙整
+## 【Basic Concept】：kubectl 基本操作彙整
 
-### 今日目標
+## 目錄
 
-* kubectl 常用指令整理
-  * get & describe
-   * Pod
-   * Deployment
-   * Service
+* [物件類別縮寫](#物件類別縮寫)
 
-* kubectl 的小技巧：
-  * 物件資源縮寫
-  * 快速產生 yaml 樣本
-  * 忘記指令語法？使用 -h
-  * 強制刪除與重新建立
+* [常用指令整理 --- get & describe](#常用指令整理-----get--describe)
 
-* 修改現有的物件：kubectl edit
+* [常用指令整理：Pod](#常用指令整理pod)
+
+* [常用指令整理：Deployment](#常用指令整理deployment)
+
+* [常用指令整理：Rollout history、Rollback](#常用指令整理rollout-historyrollback)
+
+* [常用指令整理：Service](#常用指令整理service)
+
+* [kubectl 的小技巧](#kubectl-的小技巧)
+
+* [修改現有物件(一)：kubectl edit](#修改現有的物件一kubectl-edit)
+
+* [修改現有物件(二)：kubectl patch](#修改現有的物件二kubectl-patch)
+
 
 
 今天是「Basic Concept」章節的倒數第二篇，我們在前面幾天介紹了 Kubernetes 中的基本物件，其中大量的操作都是透過 kubectl 這個指令來完成的，所以管理者最好能快速且熟練的使用 kubectl。
@@ -25,7 +30,7 @@
 
 > 要在 kubectl 中指定 Namespace，加入「-n」參數即可，例如：「kubectl -n kube-system get po」，底下就不特別整理了。
 
-### 物件類別縮寫：
+### 物件類別縮寫
 
 在 kubectl 指令中，我們常常需要指定資源類別，而縮寫可以大大加快下指令的速度，以下是常見的縮寫：
 
@@ -223,6 +228,45 @@ kubectl set image deploy <deploy-name> <container-name>=<new-image-name>
 # 若 Deployment 是由 kubectl create 建立，則 container-name 預設為 deploy-name
 ```
 
+### 常用指令整理：Rollout history、Rollback
+
+
+* 查看 Rolling Update 的歷史：
+
+```bash
+kubectl rollout history deploy <deploy-name>
+```
+
+* 查看特定 Revision 的詳細資訊：
+```bash
+kubectl rollout history deploy <deploy-name> --revision=<revision-number>
+```
+
+* 回到上一個版本：
+```bash
+kubectl rollout undo deploy <deploy-name>
+```
+
+* 回到特定 Revision：
+```bash
+kubectl rollout undo deploy <deploy-name> --to-revision=<revision-number>
+```
+
+* 標記此次版本的 CHANGE-CAUSE：
+```bash
+kubectl annotate deploy <deploy-name> kubernetes.io/change-cause="<change-cause>"
+```
+
+* 重啟 Deployment：
+```bash
+kubectl rollout restart deploy <deploy-name>
+```
+
+* 查看 Deployment 的 rolling 狀態：
+```bash
+kubectl rollout status deploy <deploy-name>
+```
+
 ### 常用指令整理：Service
 
 * 為 pod/deploymnet 建立一個 service：
@@ -243,6 +287,8 @@ kubectl create service <service-type> <service-name> --tcp <port-number>:<target
 ```bash
 kubectl logs svc/<service-name>
 ```
+
+---
 
 ### kubectl 的小技巧
 
@@ -272,7 +318,7 @@ kubectl replace -f <new-yaml-file> --force --grace-period=0
 
 5. 將 kubectl 設定 alias 為「k」，並且善用 bash 的自動補全功能(Tab 鍵)，能大大提升下指令的速度。相關設定請參考 [Day 03](https://ithelp.ithome.com.tw/articles/10345660) 的「Tips 1：kubectl bash completion」。
 
-### 修改現有的物件：kubectl edit
+### 修改現有的物件(一)：kubectl edit
 
 如果某個資源已經被建立了，但是想要修改一些設定，可以使用 kubectl edit 來進行更新，其語法如下：
 
@@ -420,12 +466,47 @@ kubectl describe po nginx | grep -i cpu
 
 當修改的經驗多了之後，你就會知道哪些欄位可直接用 edit 修改的，而哪些不行。如果你知道你要修改的欄位不能直接用 edit 更新，可以先將資源的 yaml 輸出，修改新 yaml 後再用 replace 來取代：
 
+
 ```bash
 kubectl get <resource_type> <resource_name> -o yaml > /tmp/<resource_name>.yaml
 ```
 (這樣可以節省掉因為 kubectl edit 失敗而要再次退出文字編輯器的時間，以及複製 /tmp/kubectl-edit-xxx 的步驟)
 
 > 最後要提醒的是，以版本控制的角度來說，頻繁使用 kubectl edit 來修改資源可能會造成資源的版控不易追蹤，因為 edit 後的結果並不會反映到原始的 yaml 檔案中，這點須特別留意。
+
+### 修改現有的物件(二)：kubectl patch
+
+另外我們也能透過 `kubectl patch` 來直接修改特定的欄位，而不用經過文字編輯器：
+
+**語法**
+
+```bash
+kubectl patch <resource_type> <resource_name> -p <json-patch>
+```
+
+舉例來說，我想更新 Pod 的 image 為 nginx:1.19.1，可以這樣做：
+
+* 建立一個 Pod：
+
+```bash
+kubectl run nginx --image nginx
+```
+
+* 使用 kubectl patch 更新 image：
+
+```bash
+kubectl patch po nginx -p '{"spec":{"containers":[{"name":"nginx","image":"nginx:1.19.1"}]}}'
+```
+
+* 另外，也可以加上 `--dry-run=client -o yaml` 先預覽一下：
+
+```bash
+kubectl patch po nginx -p '{"spec":{"containers":[{"name":"nginx","image":"nginx:1.19.1"}]}}' --dry-run=client -o yaml
+```
+
+
+`kubectl patch` 比較常用在腳本、自動化流程等「無法使用文字編輯器」的情況，因為當你手動把 json patch 打出來時，`kubectl edit` 說不定早就改好了。
+
 
 ### 今日小結
 

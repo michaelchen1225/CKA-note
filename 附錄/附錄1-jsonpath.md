@@ -4,6 +4,27 @@ jsonpath 是一種用來 query json 格式的語法，我們可以搭配 `kubect
  
 在使用 jsonpath 以前，我們先來看看基本的 json 語法與其對應的 yaml。
 
+## json 基本資料類型
+
+* `字串`：用 "" 包起來的文字
+
+* `數字`：30、3、14 等等
+
+* `布林值`：true、false
+
+* `空值`：null
+
+* `key-value pair`：key 必定為字串，value 可以是任何資料類型
+
+* `Object`：key-value pair 的集合，用 `{}` 包起來，取值時使用 key 來取得對應的 value
+
+* `Array`：用 `[]` 包起來，裡面可以放任何資料類型，取值時使用 index 來取得對應的 value
+
+* `Map`：巢狀 Object (object 值為 object)，取值同樣用 key 來取得對應的 value
+
+* `List`：object 值為 array，取值時使用 index
+
+
 ## json vs yaml
 
 ### key-value pair：
@@ -20,8 +41,27 @@ yaml：
 name: Michael
 ```
 
-
 ### Object：
+
+json:
+
+```json
+{
+  "name": "Michael",
+  "age": 34,
+  "hair": "black"
+}
+```
+
+yaml：
+
+```yaml
+name: Michael
+age: 34
+hair: black
+```
+
+### Map (巢狀 Object)：
 
 json:
 
@@ -57,7 +97,7 @@ yaml：
 - Alice
 ```
 
-### Object值為Array：
+### **List**：Object 值為 Array
 
 json:
 
@@ -80,8 +120,7 @@ employee:
   - Alice
 ```
 
-### Array值為Object：
-
+### Array 值為 Object：
 json:
 
 ```json
@@ -106,7 +145,7 @@ yaml：
   age: 30
 ```
 
-### Array值為Array：
+### 巢狀 Array：
 
 json：
 
@@ -176,6 +215,7 @@ yaml：
 底下示範幾個 jsonpath 的 query，你可以[點這裡](https://jsonpath.com/)跟著一起操作看看：
 
 ### 列出商店裡的所有商品：
+
 ```bash
 $.store.*
 ```
