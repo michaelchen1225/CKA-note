@@ -242,7 +242,7 @@ Services & Networking | 20%
 * 移除了一些必考題，例如 ETCD 的備份與還原。
 * 根據一些考生的留言，考試出現了他們在準備時沒看過、不熟的東西，例如使用 dpkg、CRD 等等。
 
-關於 Helm 與 Kustomize 的部分，筆者已經更新於鐵人賽的文章中，不過其他的部分就只能等到之後有空再來更新了。如果你是 2025/2/18 CKA 改版後的考生，請務必留意這些更動內容，Google 搜尋「 Updated Feb 18th 2025 CKA Exam」就能找到相關的討論與資訊。
+關於 Helm 與 Kustomize 的部分，筆者已經更新於「[Kubernetes-note](https://github.com/michaelchen1225/Kubernetes-note)」中，不過其他的部分就只能等到之後有空再來更新了。如果你是 2025/2/18 CKA 改版後的考生，請務必留意這些更動內容，Google 搜尋「 Updated Feb 18th 2025 CKA Exam」就能找到相關的討論與資訊。
 
 總而言之，新的考試題目與筆者在去年(2024)八月份已經截然不同，請考生要額外留意以下主題：
 
