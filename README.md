@@ -259,7 +259,7 @@ Services & Networking | 20%
 
 CKA 考試的及格分數為 66 分，筆者在今年八月順利通過了考試：
 
-> [我的 CKA 攻略](https://ithelp.ithome.com.tw/articles/10354313)
+> [我的 CKA 攻略](./附錄/CKA%20攻略：我是如何滿分一次通過的？.md)
 
 **考試成績：**
 
