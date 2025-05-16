@@ -233,6 +233,30 @@ Services & Networking | 20%
 
 > 五大領域下面還有更細的子領域，可參考 [CKA 官網](https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/#)
 
+### **重要提醒**：CKA 2025 改版
+
+最近(2025/4)筆者在 Reddit 上閒逛的時候，發現有篇文章討論了 CKA 考試內容的更新，原文連結在[這裡](https://www.reddit.com/r/CKAExam/comments/1jbi4iw/discussion_of_the_updated_feb_18th_2025_cka_exam/)，以下大概說明一下目前的改動有哪些：
+
+* 增加新的考試主題，例如 Helm、Kustomize、CRD、Gateway API、HPA 等等。
+* 考試難度增加，以前更多的是找文件上的 YAML 改改，現在更注重故障排除的能力。
+* 移除了一些必考題，例如 ETCD 的備份與還原。
+* 根據一些考生的留言，考試出現了他們在準備時沒看過、不熟的東西，例如使用 dpkg、CRD 等等。
+
+關於 Helm 與 Kustomize 的部分，筆者已經更新於鐵人賽的文章中，不過其他的部分就只能等到之後有空再來更新了。如果你是 2025/2/18 CKA 改版後的考生，請務必留意這些更動內容，Google 搜尋「 Updated Feb 18th 2025 CKA Exam」就能找到相關的討論與資訊。
+
+總而言之，新的考試題目與筆者在去年(2024)八月份已經截然不同，請考生要額外留意以下主題：
+
+* Helm & Kustomize
+* CRD
+* Gateway API
+* HPA、VPA
+* Gateway API
+* 安裝 Container Runtime
+
+好消息是報名考試後的模擬考 Killer.sh 也更新了他們的考題，所以還是能拿模擬考的分數來衡量自己是否準備好了。
+
+---
+
 CKA 考試的及格分數為 66 分，筆者在今年八月順利通過了考試：
 
 > [我的 CKA 攻略](https://ithelp.ithome.com.tw/articles/10354313)
