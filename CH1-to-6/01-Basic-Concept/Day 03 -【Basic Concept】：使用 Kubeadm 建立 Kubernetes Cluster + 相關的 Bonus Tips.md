@@ -38,9 +38,9 @@
 
 ## 方法二 : kubeadm
 
-但使用 playground 的方式，練習的結果是暫時性的。所以如果想要建立一個較為完整的 cluster，可以使用「`kubeadm`」進行建置。
+但使用 playground 的方式，練習的結果是暫時性的。如果想要建立一個較為完整的 cluster，可以使用「`kubeadm`」進行建置。
 
-kubeadm 是一個專門用來部署 Kubernetes 的工具，能夠快速的建立一個 cluster，並且可以直接在本地端進行操作。以下將以 Virtualbox 為例，用 kubeadm 建立一個 cluster。
+kubeadm 是一個用來部署 Kubernetes 的工具，能夠快速的建立一個 cluster，並且可以直接在本地端進行操作。以下將以 Virtualbox 為例，用 kubeadm 建立一個 cluster。
 
 > 用 kubeadm 建立 cluster 能讓你對整個 cluster 的架構有更清晰的認識，蠻推薦初學者跟著底下一起操作，
 
@@ -144,6 +144,15 @@ ssh root@192.168.132.2
 ssh root@worker1
 ```
 
+如果不想每次都輸入密碼驗證，還可以用 `ssh-copy-id` 將 ssh key 複製到目標 node 上：
+
+```bash
+# 將 ssh key 複製到 worker1 上
+ssh-copy-id root@worker1
+```
+
+> 下完指令後，會要求輸入密碼驗證，若驗證成功，以後登入 worker1 直接 `ssh root@worker1` 即可。
+
 安裝好虛擬機、設定好 IP 與 ssh 連線後，就可以開始 cluster 的建置了。
 
 ---
@@ -246,7 +255,7 @@ containerd config dump | grep SystemdCgroup
 
 在每台 VM 上，需要以下三個組件：
 
-  * **kubelet**：昨天的文章中有提到，它是「小船的船長」。
+  * **kubelet**：上一篇有提到，它是「小船的船長」。
 
   * **kubeadm**：用來部署 cluster 的工具。除了 kubelet 我們要自己裝以外，昨天提到的其他組件都會由 kubeadm 來幫我們安裝。
 
@@ -323,8 +332,8 @@ Kustomize Version: v5.4.2
 在預設上，如果 swap 沒有被關閉，可能會導致 kubelet 無法正常運作。所以需要先關閉所有 VM 上的 swap：
 
 ```bash
-sudo swapoff -a # 暫時關閉
-sudo vim /etc/fstab # 永久關閉，將swap的那一行註解掉
+sudo swapoff -a 
+sudo vim /etc/fstab # 將swap的那一行註解掉
 ```
 
 * 每台 VM 都需要載入必要的模組，並啟用 ip_forward：
