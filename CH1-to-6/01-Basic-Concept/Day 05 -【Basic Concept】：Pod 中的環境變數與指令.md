@@ -145,7 +145,7 @@ node01 env-from-pod-info default 192.168.1.9
 
 ### Pod 中的指令 (command) 與參數 (arguments)
 
-如果用用指令建立一個 busybox 的 Pod ，且不帶任何參數，看看會發生什麼事：
+如果用 `kubectl` 建立一個 busybox 的 Pod ，且不帶任何參數，看看會發生什麼事：
 
 ```bash
 kubectl run busybox --image busybox
