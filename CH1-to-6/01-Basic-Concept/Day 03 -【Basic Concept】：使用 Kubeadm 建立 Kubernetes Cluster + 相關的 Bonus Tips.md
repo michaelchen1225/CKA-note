@@ -664,6 +664,12 @@ sudo apt-get purge kubeadm kubectl kubelet kubernetes-cni kube*
 sudo apt-get autoremove
 ```
 
+### Tips 6：建置 HA cluster
+
+熟習普通 cluster 的建置流程後，有興趣的話可以跟著附錄建置一個 HA cluster：
+
+> [附錄：建置 HA cluster]((https://github.com/michaelchen1225/Kubernetes-note/blob/master/HA%20cluster/ha.md))
+
 ## 重要提醒：使用 Virtualbox，發現 kubelet 抓到的 Node IP 相同
 
 如果是使用 Virtualbox 安裝環境，在每台 VM 都有 NAT 網卡的情況下，可能會遇到 kubelet 抓到的 Node 的 INTERNAL-IP  相同的情況，例如：
