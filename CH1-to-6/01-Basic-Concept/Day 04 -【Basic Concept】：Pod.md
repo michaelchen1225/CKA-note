@@ -518,7 +518,7 @@ Events:
 POD_IP=$(kubectl get pod web -o jsonpath="{.status.podIP}")
 ```
 
-* 然後curl到這個 IP：
+* 然後 curl 到這個 IP：
 ```bash
 curl ${POD_IP}
 ```
