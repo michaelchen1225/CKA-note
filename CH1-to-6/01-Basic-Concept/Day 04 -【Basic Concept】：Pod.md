@@ -148,13 +148,13 @@ kubectl run nginx --image nginx:1.14.2 --port 80
    * **版本控制**：
      yaml 可以輕鬆的儲存在版控系統中(例如 Git)，適合開發團隊的合作。
 
-> **CKA Tips**：在考試中為了節省時間，能用指令的地方就用指令，除非指令無法滿足需求在使用 yaml。
+> **CKA Tips**：在考試中為了節省時間，能用指令的地方就用指令，除非指令無法滿足需求再使用 yaml。
 
 既然指令的選項無法滿足需求時，還是需要用到 yaml，難道這時就要自己重頭到尾寫一份 yaml 嗎？
 
-其實還是可以使用指令的方式，先產生基本的 yaml **樣本**，然後再利用文字編輯器(例如 vim、nano)進行符合要求的修改 :
+其實還是可以使用指令的方式，先產生基本的 yaml **樣本**，然後再利用文字編輯器(例如 vim、nano)進行符合要求的修改：
 
-* 生成 yaml 的樣本:
+* 生成 yaml 的樣本：
 
 ```bash
 kubectl run <pod-name> --image=<image> --dry-run=client -o yaml > <yaml-name>.yaml
@@ -221,30 +221,48 @@ multi-container-pod   2/2     Running   0          32s
 > 有的，以下整理了關於 Pod 的基本操作：
 
 列出目前所有 Pod 的狀態：
+
 ```bash
 kubeclt get pod
 ```
-> 這樣講其實並不準確，不過因為還沒講到 namespace 的概念，所以先暫時這樣理解。( 有興趣的話可以先參考 [Day 08](https://ithelp.ithome.com.tw/articles/10346374) )
+> 這樣講其實並不準確，不過因為還沒講到 namespace 的概念，所以先暫時這樣理解。( 有興趣的話可以先參考 [Day 08](./Day%2008%20-【Basic%20Concept】：Namespace.md) )
+
+---
 
 持續的輸出 Pod 的狀態：
+
 ```bash
 kubectl get pod -w
 ```
+
+or
+
+```bash
+watch kubectl get pod
+```
+
+---
 
 查看 Pod 的詳細資訊，例如 Pod 的 status、events、Pod 中的容器名稱等等：
 ```bash
 kubectl describe pod <pod-name>
 ```
 
+---
+
 查看 Pod 中「容器的 log 」：
 ```bash
 kubectl logs <pod-name>
 ```
 
+---
+
 持續的輸出容器的 log：
 ```bash
 kubectl logs -f <pod-name>
 ```
+
+---
 
 若 Pod 中的容器不只一個，可以用「-c」來指定容器：
 ```bash
@@ -257,6 +275,8 @@ kubectl logs <pod-name> -c <container-name>
 kubectl logs multi-container-pod -c nginx
 ```
 
+---
+
 刪除 Pod ( 可以一次刪除多個，\<pod-name> 用空格隔開 )：
 ```bash
 kubectl delete pod <pod-name> <pod-name> ...
@@ -267,11 +287,15 @@ kubectl delete pod <pod-name> <pod-name> ...
 kubectl delete pod nginx
 ```
 
+---
+
 強制性的刪除 Pod：
 ```bash
 kubectl delete pod --force --grace-period=0
 ```
 > **CKA Tips**：有時候刪除 Pod 的時候會一直卡在 Terminating 的狀態，就可以用上面的方式強制刪除來節省時間。
+
+---
 
 刪除使用 yaml 檔創建的 Pod：
 ```bash
@@ -284,6 +308,8 @@ kubectl delete -f <yaml-path>
 kubectl delete -f multi-container-pod.yaml --force
 ```
 
+---
+
 建立 Pod 並執行在容器中執行指令：
 ```bash
 kubectl run <pod-name> --image <image> --command -- <command> <arg1> <arg2> ... <argN>
@@ -295,12 +321,16 @@ kubectl run <pod-name> --image <image> --command -- <command> <arg1> <arg2> ... 
 kubectl run busybox --image busybox --command -- sleep 300
 ```
 
+---
+
 建立 Pod 並使用預設指令，但使用不同參數：
 ```bash
 kubectl run <pod-name> --image <image> -- <arg1> <arg2> ... <argN>
 ```
 
 ( 關於 Pod 中的指令與參數，會在之後介紹，有興趣的話可以先參考 [Day 05](https://ithelp.ithome.com.tw/articles/10345967) )
+
+---
 
 在執行中的 Pod 裡執行指令：
 ```bash
@@ -311,6 +341,8 @@ kubectl exec <pod-name> -- <command> <arg1> <arg2> ... <argN>
 ```bash
 kubectl exec busybox -- echo hello
 ```
+
+---
 
 使用終端與 Pod 中的容器進行互動：
 ```bash
@@ -327,6 +359,8 @@ kubectl exec -it busybox -- /bin/sh
 # 使用 exit 離開
 ```
 
+---
+
 更新 Pod 的 image：
 ```bash
 kubectl set image pod <pod-name> <container-name>=<new-image>
@@ -336,6 +370,8 @@ kubectl set image pod <pod-name> <container-name>=<new-image>
 ```bash
 kubectl set image pod webapp web=nginx:1.15
 ```
+
+---
 
 搭配 jsonpath 來取得 Pod 的特定資訊:
 ```bash
