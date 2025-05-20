@@ -19,6 +19,7 @@
   * [kubeadm 初始化過程中的除錯](#tips-3初始化過程中的除錯)
   * [建立 single node cluster](#tips-4single-node-cluster)
   * [移除 cluster 中的 Worker Node](#tips-5移除-cluster-中的-worker-node)
+  * [建置 HA Cluster](#tips-6建置-ha-cluster)
 
 * [重要提醒：「使用 Virtualbox，發現 kubelet 抓到的 Node IP 相同」之修改方式](#重要提醒使用-virtualbox發現-kubelet-抓到的-node-ip-相同)
 
