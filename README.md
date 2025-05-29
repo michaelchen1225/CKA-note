@@ -276,9 +276,11 @@ CKA 考試的及格分數為 66 分，筆者在今年八月(2024)順利通過了
 
 ![https://ithelp.ithome.com.tw/upload/images/20240819/20168692BoTtjh8w8g.png](https://ithelp.ithome.com.tw/upload/images/20240819/20168692BoTtjh8w8g.png)
 
-## 今日小節
+### 今日小節
 
 今天我們從雲原生談起，從容器、微服務談到了 Kubernetes，簡單介紹了 Kubernetes 的特色，其中最重要的特色就是「彈性」，從容器編排、插件、部署環境等等，我們都能自行選擇、規劃。
+
+### 下一篇：[Kubernetes 的架構與組件](CH1-to-6/01-Basic-Concept/Day%2002%20-【Basic%20Concept】：Kubernetes%20的架構與組件.md)
 
 ---
 **參考資料**
