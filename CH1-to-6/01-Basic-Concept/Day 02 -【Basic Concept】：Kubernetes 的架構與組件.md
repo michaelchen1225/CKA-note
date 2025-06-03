@@ -13,7 +13,7 @@
 * [小結 --- Kubernetes 的架構與組件](#小結-----kubernetes-的架構與組件)
 
 * [HA Cluster](#HA-Cluster)
-  * [附錄：建置 HA cluster]((https://github.com/michaelchen1225/Kubernetes-note/blob/master/HA%20cluster/ha.md))
+  * [附錄：建置 HA cluster](#附錄建置-ha-cluster-optional)
 
 * [今日小節](#今日小節)
 
@@ -290,7 +290,7 @@ Master Node 身為整個船隊的**總指揮**，除了擁有上述提到的三�
 
 HA cluster 的建置會比較複雜，這裡以附錄的形式提供給有興趣的讀者：
 
-> [附錄：建置 HA cluster](https://github.com/michaelchen1225/Kubernetes-note/blob/master/HA%20cluster/ha.md)
+> [附錄：建置 HA cluster](https://github.com/michaelchen1225/Kubernetes-note/blob/master/on-prem/ha.md)
 
 如果是初學者的話，現階段先了解 HA cluster 的概念即可，因為之後我們就會介紹如何建置一個「普通」的 cluster，在熟悉建置 cluster 的基本流程後，之後建立 HA cluster 就會更加順手。
 
