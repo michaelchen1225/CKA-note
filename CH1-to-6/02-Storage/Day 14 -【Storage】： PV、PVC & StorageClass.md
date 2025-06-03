@@ -4,38 +4,54 @@
 
 * 了解 PV、PVC、StorageClass 的概念與關係
 
+* 以實作來了解 reclaim policy 的效果 (Delete、Retain、Recycle)
+
 * 實際使用 PV、PVC、StorageClass
   * 使用 nfs 作為 storageClass 的 provisioner (optional)
 
 ### 什麼是 PV、PVC、StorageClass
 
-上個章節介紹了 volume，但如果我們只是單純的使用 volume 會有以下幾個缺點：
+上個章節介紹了 volume，但如果只是單純的使用 volume 作為 Pod 的 storage 存在一些缺點，例如：
 
   * Volume 的生命週期和 Pod 是一樣的，當 Pod 被刪除時，volume 也會被刪除。
   
   * 假如定義了 hostPath，當 Pod 轉移到另一個 Node 上時，我們無法保證新的 Node 上也有同樣的「hostPath」，可能造成 Pod 讀不到資料。
 
-  * 每個 Pod 都要定義自己的 volume，當 Pod 數量增加時，定義這些不能重複使用的 volume 會變得很麻煩。
+另外，Volume 分成好幾種類型，每種的配置方式又有些許不同，效能與適用場景也不同。
+
+> 例如：volume 類型中，nfs 與 iscsi 乍看之下很類似，但效能與應用場景都不同，在 yaml 上的配置也不同。([延伸閱讀](https://aws.amazon.com/tw/compare/the-difference-between-nfs-and-iscsi/))
+
+開發者在面對五花八門的 volume 寫法時，內心可能會想：「我只是需要一個儲存空間而已阿......」
+
+如果說，當開發者的 Pod 需要儲存空間時，僅需提出需求(例如「要幾G」)，剩下直接交給 k8s 管理員來提供實際的 storage，不但能減輕開發者的負擔，也能讓 storage 與 pod 的生命週期解耦。
+
+而這就是 Persistent Volume、Persistent Volume Claim 的概念：
+
+* **Persistent Volume (PV)**：擁有獨立生命週期的 storage。
+
+* **Persistent Volume Claim (PVC)**：儲存空間的需求。
+
+K8s 管理員的工作就是當有 PVC 提出後，提供相對應的 PV 給 PVC。
+
+提供 PV 的方式稱為「provisioning」，可以分為以下兩種模式：
+
+> 簡單講就是手動與自動的差別：
+
+* **Static**：由管理員自行定義並建置，例如管理使用 yaml 來建立 PV。
+* **Dynamic**: 管理員配置 「StorageClass」，後續由 storageClass 來自動建置 PV。
+
+StorageClass 可以讓 PV 的 provisioning 變得更簡單，舉例來說：
+
+1. 開發者建立了一個 PVC，該 PVC 屬於 storageClass「A」。
+
+2. StorageClass「A」看到新的 PVC，會自動建立相對應的 PV，而非管理員手動操作。
 
 
-如果能先建立一個獨立於 Pod 之外能持續存活的「volume」，等 Pod 有需要時再依需求分配，不需要的時候就釋出，這樣就方便許多了。而這樣的「volume」就是 **Persistent Volume** (PV)，而 Pod 對 PV 的需求就透過 **Persistent Volume Claim** (PVC) 來提出。
+前面提過不同的 stroage 方式存在效能、使用場景上的差異。為解決多種使用需求，一個 cluster 中可以存在多種 storageClass。
 
-> 建立 PVC 來要求儲存空間，系統會依照 PVC 的要求給予相對應的 PV，最終再將 PVC 與 Pod 綁定，這樣 Pod 就有儲存空間可以使用了。
+以上為 PV、PVC、StorageClass 的基本介紹，底下我們先來了解三者的 yaml 寫法，然後用「生命週期」把概念統整一下，最後再來進行各種實作。
 
-
-而 PV 的配置方式可以分為以下兩種模式：
-
- * **Static**：由管理者自行定義並建置，也就是使用 yaml 建立 PV。
-
- * **Dynamic**: 由 StorageClass 自動建置。
-
-一個 cluster 中能存在多種 storageClass，我們能依照不同需求指定 PV、PVC所屬的 storageClass，這樣就能有效的分類不同的儲存資源，就像將 Pod 歸類到不同 namespace 一樣。
-
-而 StorageClass 可以讓 PV 的配置更加方便與彈性，舉例來說，我們建立了一個屬於 storageClass「A」的 PVC 時，管理者不用像以前一樣手動建立 PV，因為 storageClass 「A」看到新的 PVC 後就會自動建立相對應的 PV。
-
-不過，PV 與 PVC 皆無法使用 `kubectl create` 直接建立，所以底下我們得先了解兩者的 yaml 寫法。 
-
-### PV 與 PVC 的 yaml 格式
+### PV 的 yaml 格式
 
 我們先來看看 PV 的 yaml 格式:
 
@@ -50,13 +66,13 @@ spec:
   accessModes:
     - <access-mode>
   persistentVolumeReclaimPolicy: <reclaim-policy>
-  <pv-type>:
+  pv-type:
     <pv-type-configurations>
 ```
 
  * **capacity**：定義 PV 的大小，例如: 1Gi、500Mi 等。
 
- * **accessModes**：定義 PV 的存取模式，有以下三種：
+ * **accessModes**：定義 PV 的存取模式
  
    * ReadWriteOnce (RWO)：只能被**單一** Node 掛載為讀寫模式
 
@@ -64,18 +80,27 @@ spec:
 
    * ReadWriteMany (RWX)：可以被**多個** Node 掛載為讀寫模式
 
+   * ReadWriteOncePod (RWOP)：只能被**單一** Pod 掛載為讀寫模式
+  
+   > 被支援的 AccessMode 與下方介紹的 **pv-type** 有關。初學者先記住 `ReadWriteOnce` 即可，因為所有的 pv-type 都支援這個模式。
 
- * **persistentVolumeReclaimPolicy**：定義當 PVC 被刪除時的行為，有以下兩種：
+ * **persistentVolumeReclaimPolicy**：定義當 PVC 被刪除時的行為，有以下三種：
  
-   * Retain：保留 PV 裡的資料，除非被管理員手動刪除，否則不能再被其他 PVC 使用 (預設值)。
+   * Retain：PV 會繼續存在，並保留 PV 裡的資料(真的用不到需自行手動刪除)。雖然 PV 還在，但已經不能再被新的 PVC 使用。
 
-   * Delete: 直接刪除 PV 以及相關的儲存資源。
+   * Delete: 直接刪除 PV 以及相關的儲存資源(ex. AWS EBS)
 
- * **pv-type**: 定義 PV 的類型，例如: `nfs`、`hostPath`、`local` 等。其他的 pv-type 可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes)
+   * Recycle：PV 會繼續存在，並刪除 PV 裡的「資料」。之後 PV **可以**被新的 PVC 使用。
+
+   > 目前(v1.33)只有 nfs、hostPath 支援 Recycle 模式。
+
+ * **pv-type**: 定義 PV 的類型，例如: `nfs`、`hostPath`、`local` 等。其他的 pv-type 可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes)。
+
+   > pv-type 支援的 AccessMode 可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes)
 
  * **pv-type-configurations**: 根據不同的 pv-type 而有不同的配置，例如：nfs 需要定義 server、path 等
 
-> 以上只是最基本的 PV 配置，其他的可以參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volumes)
+### PVC 的 yaml 格式
 
 我們再來看看 PVC 的 yaml 格式：
 
@@ -85,6 +110,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: <pvc-name>
 spec:
+  storageClassName: <storage-class-name>
   accessModes:
     - <access-mode>
   resources:
@@ -92,11 +118,15 @@ spec:
       storage: <request-size>
 ```
 
-* **accessModes**：同 PV 的 accessModes
+* **storageClassName**：指定 storageClass 來自動建立 PV。若省略此欄位，則使用預設的 storage class，沒有預設的 storage class 就得手動建立 PV。
 
-* **resources**：定義所需的大小，例如: 1Gi、500Mi 等
+* **accessModes**：同 PV 的 accessModes (RWO、ROX、RWX、RWOP)。
+
+* **resources**：定義所需的大小，例如: 1Gi、500Mi 等。
 
 另外，也可以使用 selector 或 volumeName 來指定 PV：
+
+**selector**:
 
 ```yaml
 apiVersion: v1
@@ -109,36 +139,44 @@ spec:
   resources:
     requests:
       storage: <request-size>
-  selector: # 使用selector來指定PV
+  selector: # 使用 selector 來指定 PV
     matchLabels:
       <key>: <value>
 ```
+
+**volumeName**:
+
 ```yaml
-......
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: <pvc-name>
 spec:
-  volumeName: <pv-name> # 使用volumeName來指定PV
+  volumeName: <pv-name> # 使用 volumeName 來指定PV
   accessModes:
     - <access-mode>
-...
+  resources:
+    requests:
+      storage: <request-size>
 ```
 
 當建立 PVC 後，K8s 會自動尋找符合條件的 PV，如果符合條件的 PV 不存在，則 PVC 會一直處於 Pending 狀態，直到符合條件的PV被建立。
 
-所謂的「符合條件」例如：
+所謂的「符合條件」規則如下：
   
   * accessModes 是否符合
 
-  * PV 的 capacity 是否大於或等於 PVC 的 request
+  * PV 的 capacity 是否大於或等於 PVC 的 request 
 
-  * selector 是否符合
-
-  * storageClass 是否符合
+  * selector 或 volumeName 是否符合
 
 ---
 > **注意**
 
 * 假設 PV 的 capacity 是 1Gi，PVC 的 request 是 500Mi，若該 PV 與 PVC 綁定了，實際上 PVC　會拿到 1Gi 的空間，而不是 500Mi。
+
 * PV 與 PVC 是一對一關係，PV 一旦和某個 PVC 綁定後，綁定期間就不能再被其他 PVC 使用。
+
 ***
 
 ### StorageClass 的 yaml 格式
@@ -168,7 +206,105 @@ volumeBindingMode: <volume-binding-mode>
 
   * WaitForFirstConsumer：當 PVC 被建立時，storageClass 不會立即建立 PV，而是等到有 Pod 使用 PVC 時才建立 PV (底下有關 local pv 的例子會使用到)
 
-> 以上是最基本的 storageClass 配置，其他設定可以參考[官網](hhttps://kubernetes.io/docs/concepts/storage/storage-classes/)
+#### 預設 storage class
+
+Default storage class 用來提供 PV 給沒有指定 storage class 的 PVC。
+
+一個 storage class 是否為預設，取決於 annotations:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: <storage-class-name>
+annotations:
+  storageclass.kubernetes.io/is-default-class: "true" # 標記為預設
+provisioner: <provisioner>
+reclaimPolicy: <reclaim-policy>
+allowVolumeExpansion: <true or false>
+volumeBindingMode: <volume-binding-mode>
+
+```
+
+若在 yaml 中沒有標記就建立 storage class ，可以用以下方式將 storage class 設定為預設：
+
+```bash
+kubectl patch storageclass <sc-name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+取消預設則是：
+
+```bash
+kubectl patch storageclass <sc-name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+```
+
+### PV 與 PVC 的生命週期
+
+底下來看看 PV 與 PVC 的生命週期，簡單的梳理一下剛剛看到的各種設定：
+
+**Provisioning**
+
+此階段為「PV 的產生」，有兩種產生方式：
+
+* **Static**：管理員自行定義並建置 PV，例如剛剛看到的 PV yaml。
+* **Dynamic**: 管理員配置「StorageClass」，後續由 storageClass 來自動建置 PV。
+
+**Binding**
+
+PVC 被建立後，系統會搜尋可用的 PV 來綁定(binding)，情況可分為以下幾種：
+
+* PVC 如果有設定 `storageClassName`，建立後系統會找相對應的 storageClass 來產生 PV。
+
+* PVC 若沒有設定 `storageClassName`，系統會找 default storageClass 來產生 PV。
+
+* 若上述兩種情況都沒有符合條件的 storageClass 來產生 PV，則系統依照以下條件搜尋可用的 PV 來綁定：
+
+  * accessModes 是否符合
+
+  * PV 的 capacity 是否大於或等於 PVC 的 request 
+
+  * selector 或 volumeName 是否符合
+
+* 經過上面的搜尋，最終 PVC 會有兩種結果：
+
+  * **Bound**: 找到合適的 PV 並綁定成功
+  * **Pending**: 找不到合適的 PV
+
+**Using**
+
+一旦 PVC 與 PV 綁定，Pod 同樣在 yaml 中透過 volume 的寫法掛載 PVC，可以開始使用 PV 的儲存資源。
+
+> 這時開發人員只需統一撰寫 pod 使用 volume 掛載 PVC 的 yaml 格式，不像以前一樣因為 volume type 的不同而有不同的寫法。
+
+**Reclaiming**
+
+當 PVC 被刪除後，PV 的狀態則取決於 `reclaimPolicy`：
+
+| ReclaimPolicy | PV 的狀態 | 資料狀態 |
+| -------------- | ----------- | ----------- |
+| Retain | 繼續留存，但已不可被使用 | 繼續留存 |
+| Delete | 直接刪除 | 直接刪除 |
+| Recycle | 繼續留存並可用 | 直接刪除 |
+
+---
+
+以上為 PV & PVC 主要的生命週期階段，接著就來實做看看。
+
+> PV & PVC 的生命週期還有其他幾種，不過主要的已經介紹完了，其餘的可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#lifecycle-of-a-volume-and-claim)。
+
+<!-- ### 實作：使用 HostPath PV 測試 reclaimPolicy 的效果
+
+reclaim policy 如果沒有實際測試過效果，乍看之下可能會覺得很抽象，以下我們來實際測試看看，並順便了解 hostPath PV 是如何被 Pod 掛載的。
+
+* 首先，在 node01 建立三個目錄：
+
+```bash
+ssh node01
+sudo mkdir -p /data/retain /data/delete /data/recycle
+```
+
+* 接著建立三個 PV： -->
+
 
 ### 實作：hostPath Persistent Volume
 
@@ -208,7 +344,7 @@ kubectl apply -f hostpath-pv.yaml
 
 這個「just-test」 storageClassName 是我們隨便取的，不用**真的**建立一個 storage class。
 
-因為如果不指定 storageClassName，則會使用系統的 default storage class，這樣後面 PVC 與 Pod 建立後，用的就不會是我們自訂的 PV，而是預設 storage class 給的 PV
+若不指定 storageClassName，假如你的系統中存在「預設」 storage class， PVC 與 Pod 建立後，用的就不會是我們自訂的 PV，而是預設 storage class 給的 PV
 
 所以使用「編造 storageClassName」的技巧，就能繞開預設的 storage class，讓我們自己定義的 PV 被使用。
 ***
@@ -289,6 +425,7 @@ kubectl exec -it hostpath-nginx -- cat /usr/share/nginx/html/test.txt
 ```txt
 testing pv and pvc
 ```
+
 
 ### hostPath 的缺點
 
