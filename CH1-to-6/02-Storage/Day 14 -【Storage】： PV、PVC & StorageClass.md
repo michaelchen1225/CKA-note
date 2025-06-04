@@ -38,6 +38,7 @@ K8s 管理員的工作就是當有 PVC 提出後，提供相對應的 PV 給 PVC
 > 簡單講就是手動與自動的差別：
 
 * **Static**：由管理員自行定義並建置，例如管理使用 yaml 來建立 PV。
+
 * **Dynamic**: 管理員配置 「StorageClass」，後續由 storageClass 來自動建置 PV。
 
 StorageClass 可以讓 PV 的 provisioning 變得更簡單，舉例來說：
@@ -46,10 +47,9 @@ StorageClass 可以讓 PV 的 provisioning 變得更簡單，舉例來說：
 
 2. StorageClass「A」看到新的 PVC，會自動建立相對應的 PV，而非管理員手動操作。
 
+前面提過，不同的 stroage 方式存在效能、使用場景上的差異，為了解決多種使用需求，一個 cluster 中可以存在多種 storageClass。
 
-前面提過不同的 stroage 方式存在效能、使用場景上的差異。為解決多種使用需求，一個 cluster 中可以存在多種 storageClass。
-
-以上為 PV、PVC、StorageClass 的基本介紹，底下我們先來了解三者的 yaml 寫法，然後用「生命週期」把概念統整一下，最後再來進行各種實作。
+了解 PV、PVC、StorageClass 的基本概念後，底下我們先來了解三者的 yaml 寫法，然後再用「生命週期」把概念統整一下。
 
 ### PV 的 yaml 格式
 
@@ -92,7 +92,7 @@ spec:
 
    * Recycle：PV 會繼續存在，並刪除 PV 裡的「資料」。之後 PV **可以**被新的 PVC 使用。
 
-   > 目前(v1.33)只有 nfs、hostPath 支援 Recycle 模式。
+     > Recycle 模式看看就好，因為[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#recycle)明確表明，建議使用 Dynamic provisioning 的方式來取代 Recycle PV。
 
  * **pv-type**: 定義 PV 的類型，例如: `nfs`、`hostPath`、`local` 等。其他的 pv-type 可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes)。
 
@@ -173,9 +173,11 @@ spec:
 ---
 > **注意**
 
-* 假設 PV 的 capacity 是 1Gi，PVC 的 request 是 500Mi，若該 PV 與 PVC 綁定了，實際上 PVC　會拿到 1Gi 的空間，而不是 500Mi。
+* 假設 PV 的 capacity 是 1Gi，PVC 的 request 是 500Mi，若該 PV 與 PVC 綁定了，實際上 PVC 會拿到 1Gi 的空間，而不是 500Mi。
 
 * PV 與 PVC 是一對一關係，PV 一旦和某個 PVC 綁定後，綁定期間就不能再被其他 PVC 使用。
+
+* PVC 可以被多個 Pod 同時使用來共享 PV 資源 (除非 AccessMode 是 ReadWriteOncePod)。
 
 ***
 
@@ -240,7 +242,7 @@ kubectl patch storageclass <sc-name> -p '{"metadata": {"annotations":{"storagecl
 
 ### PV 與 PVC 的生命週期
 
-底下來看看 PV 與 PVC 的生命週期，簡單的梳理一下剛剛看到的各種設定：
+這裡透過 PV 與 PVC 的生命週期，簡單的梳理一下剛剛看到的各種設定：
 
 **Provisioning**
 
@@ -274,7 +276,7 @@ PVC 被建立後，系統會搜尋可用的 PV 來綁定(binding)，情況可分
 
 一旦 PVC 與 PV 綁定，Pod 同樣在 yaml 中透過 volume 的寫法掛載 PVC，可以開始使用 PV 的儲存資源。
 
-> 這時開發人員只需統一撰寫 pod 使用 volume 掛載 PVC 的 yaml 格式，不像以前一樣因為 volume type 的不同而有不同的寫法。
+> 這時開發人員只需統一撰寫 pod 使用 volume 掛載 PVC 的 yaml 格式 (下面有實作)，不像以前一樣因為 volume type 的不同而有不同的寫法。
 
 **Reclaiming**
 
@@ -284,7 +286,6 @@ PVC 被建立後，系統會搜尋可用的 PV 來綁定(binding)，情況可分
 | -------------- | ----------- | ----------- |
 | Retain | 繼續留存，但已不可被使用 | 繼續留存 |
 | Delete | 直接刪除 | 直接刪除 |
-| Recycle | 繼續留存並可用 | 直接刪除 |
 
 ---
 
@@ -292,140 +293,307 @@ PVC 被建立後，系統會搜尋可用的 PV 來綁定(binding)，情況可分
 
 > PV & PVC 的生命週期還有其他幾種，不過主要的已經介紹完了，其餘的可參考[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#lifecycle-of-a-volume-and-claim)。
 
-<!-- ### 實作：使用 HostPath PV 測試 reclaimPolicy 的效果
+### 實作：hostPath PV & reclaim policy
 
-reclaim policy 如果沒有實際測試過效果，乍看之下可能會覺得很抽象，以下我們來實際測試看看，並順便了解 hostPath PV 是如何被 Pod 掛載的。
+Reclaim policy 如果沒有實際測試過效果，乍看之下可能會覺得很抽象。以下我們來實際測試看看，並順便了解 hostPath PV 是如何被 Pod 掛載的。
 
-* 首先，在 node01 建立三個目錄：
+
+首先，在 node01 建立兩個目錄：
 
 ```bash
 ssh node01
-sudo mkdir -p /data/retain /data/delete /data/recycle
+sudo mkdir -p -m 777 /data/retain /data/delete 
 ```
 
-* 接著建立三個 PV： -->
-
-
-### 實作：hostPath Persistent Volume
-
-> **目標**：先準備一個檔案在 PV 中，透過 PVC 將該檔案掛載到 Pod 。
-
-* 在 node01 建立測試用的檔案(如果是 single-node cluster，則在 master node 上建立)：
-    
-```bash
-ssh node01
-echo "testing pv and pvc" > /tmp/test.txt
-```
-
-* 接著 ssh 回到 Master Node，建立一個 PV：
+接著建立三個 PV，分別使用不同的 reclaim policy：
 
 ```yaml
-# hostpath-pv.yaml
+# pv.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: hostpath-pv
+  name: pv-retain
+  labels:
+    foo: bar
 spec:
-  storageClassName: just-test
   capacity:
     storage: 500Mi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /tmp
-```
-```bash
-kubectl apply -f hostpath-pv.yaml
-```
-
+    path: /data/retain
 ---
-> **Tips**：編造 storageClassName
-
-這個「just-test」 storageClassName 是我們隨便取的，不用**真的**建立一個 storage class。
-
-若不指定 storageClassName，假如你的系統中存在「預設」 storage class， PVC 與 Pod 建立後，用的就不會是我們自訂的 PV，而是預設 storage class 給的 PV
-
-所以使用「編造 storageClassName」的技巧，就能繞開預設的 storage class，讓我們自己定義的 PV 被使用。
-***
-
-* 建立後檢查 PV 的狀態：
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-delete
+  labels:
+    foo: bar
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /data/delete
+```
 ```bash
-kubectl get pv test-pv
+kubectl apply -f pv.yaml
 ```
-```text
-NAME      CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
-test-pv   500Mi      RWO            Retain           Available           just-test      <unset>                          3s
 
-```
-> STATUS為「Available」，表示 PV 還沒被使用，可以被 PVC 請求
+接著建立兩個 PVC，分別使用 `volumeName` 來指定 PV，並將 `storageClassName` 設為 null，以免系統中存在 default storage class，導致 PVC 綁訂到 dynamic PV：
 
-* 再建立一個 PVC：
 
 ```yaml
-# test-pvc.yaml
+# pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: test-pvc
+  name: pvc-retain
+  labels:
+    foo: bar
 spec:
-  storageClassName: just-test
+  storageClassName: ""
+  volumeName: pv-retain
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-delete
+  labels:
+    foo: bar
+spec:
+  storageClassName: "" 
+  volumeName: pv-delete
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
 ```
 ```bash
-kubectl apply -f test-pvc.yaml
+kubectl apply -f pvc.yaml
 ```
 
-* 檢查 PVC 的狀態：
+
+檢查三個 PVC 的狀態：
+
 ```bash
-kubectl get pvc test-pvc
+kubectl get pvc -l foo=bar
 ```
 ```text
-NAME       STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-test-pvc   Bound    test-pv   500Mi      RWO            just-test      <unset>                 3s
+NAME          STATUS   VOLUME       CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pvc-delete    Bound    pv-delete    500Mi      RWO                           <unset>                 52s
+pvc-retain    Bound    pv-retain    500Mi      RWO                           <unset>                 52s
 ```
-> STATUS 為「Bound」，表示 PVC 已成功綁定到 PV 上。
+> 從 STATUS 可以看出三個 PVC 皆成功找到了對應的 PV，因此狀態為 Bound。
+> 從 VOLUME 可以看出三個 PVC 皆成功綁定到我們指定的 PV。
 
-* 建立一個Pod，掛載 PVC：
+然後我們建立第一個 Pod，並使用 pvc-retain：
 
 ```yaml
-# hostpath-nginx.yaml
+# retain-pod.yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: hostpath-nginx
+  name: retain-pod
+  labels:
+    foo: bar
 spec:
-  nodeName: node01  # 確保 Pod 能存取到 hostPath
-  volumes:
-    - name: pv-volume
-      persistentVolumeClaim:
-        claimName: test-pvc
+  nodeName: node01
   containers:
-    - name: nginx
-      image: nginx
-      ports:
-        - containerPort: 80
+    - name: busybox
+      image: busybox
+      command: ["/bin/sh", "-c", "echo 'hello from retain-pod' > /pod-data/retain.txt && sleep 3600"]
       volumeMounts:
-        - mountPath: "/usr/share/nginx/html"
-          name: pv-volume
-```
-```bash
-kubectl apply -f hostpath-nginx.yaml
-```
-
-建立後查看一下是否掛載成功：
-```bash
-kubectl exec -it hostpath-nginx -- cat /usr/share/nginx/html/test.txt
-```
-如果掛載有成功，輸出如下：
-```txt
-testing pv and pvc
+        - name: retain-vol
+          mountPath: /pod-data
+  volumes:
+    - name: retain-vol
+      persistentVolumeClaim:
+        claimName: pvc-retain
 ```
 
+```bash
+kubectl apply -f retain-pod.yaml
+```
+
+
+**yaml 解讀**
+
+* 透過 `spec.nodeName` 指定 retain-pod 一定要跑在 node01 上，因為只有 node01 上才有 hostPath PV。(nodeName 的用法屬於 scheduling 的範疇，後續會有一個專門的章節來介紹)
+
+* 在 `spec.volumes` 中定義了一個叫做 "retain-vol" 的 volume，該 volume 的類別是 `persistentVolumeClaim`，使用了 pvc-retain 這個 PVC。
+
+* 在 `spec.containers.volumeMounts` 中，將 retain-vol 掛載至 retain-pod 的 /pod-data 目錄下。當 retain-pod 啟動時，會在 /pod-data 目錄下建立 retain.txt，內容為 "hello from retain-pod"。
+
+* 因為 retain-vol 實際上是一個 hostPath PV (pvc-retain -> pv-retain)，因此 retain.txt 實際上存在於 node01 的 /data/retain 目錄下。
+
+所以當 pod 被建立起來後，我們能在 node01 的 /data/retain 目錄下看到 retain.txt 的內容：
+```bash
+ssh node01 -- cat /data/retain/retain.txt
+```
+```text
+hello from retain-pod
+```
+
+確認資料有正確寫入，刪掉 retain-pod & pvc-retain，並觀察 pv-retain 的狀態：
+
+```bash
+kubectl delete pod retain-pod --force --grace-period=0
+kubectl delete pvc pvc-retain
+kubectl get pv pv-retain
+```
+```text
+NAME        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS     CLAIM                STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-retain   500Mi      RWO            Retain           Released   default/pvc-retain                  <unset>                          53m
+```
+
+可以看到因為是 Retain 模式，所以 pv-retain 的 STATUS 為 **Released**，代表原本的 PVC 已被刪除，但 PV 尚未被回收，所以無法再被其他 PVC 綁定使用。
+
+「PV 尚未被收回」可以從 `claimRef` 中看出來：
+
+```bash
+kubectl get pv pv-retain -o jsonpath='{.spec.claimRef}'
+```
+```text
+{"apiVersion":"v1","kind":"PersistentVolumeClaim","name":"pvc-retain","namespace":"default","resourceVersion":"6766874","uid":"e6bd8d92-5f7d-41a3-82d5-def3ed098f21"}
+```
+
+
+因此將 claimRef 設為 null 就可以手動回收 PV，讓它的 STATUS 變回 **Available**：
+
+```bash
+kubectl patch pv pv-retain -p '{"spec":{"claimRef": null}}' 
+kubectl get pv pv-retain
+```
+```text
+NAME        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-retain   500Mi      RWO            Retain           Available                          <unset>                          4h13m
+```
+
+這時我們重新建一個新的 PVC 與 Pod，嘗試讀取之前留下的 retain.txt：
+
+```yaml
+# new-retain.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: new-pvc
+  labels:
+    foo: bar
+spec:
+  storageClassName: ""
+  volumeName: pv-retain
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: new-pod
+  labels:
+    foo: bar
+spec:
+  nodeName: node01
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["/bin/sh", "-c", "cat /pod-data/retain.txt; sleep 3600"]
+      volumeMounts:
+        - name: retain-vol
+          mountPath: /pod-data
+  volumes:
+    - name: retain-vol
+      persistentVolumeClaim:
+        claimName: new-pvc-retain
+```
+```bash
+kubectl apply -f new-retain.yaml
+```
+
+等 new-pod 跑起來後，檢查它的 log 即可查看 "cat /pod-data/retain.txt" 的輸出結果：
+
+```bash
+kubectl logs new-pod
+```
+```text
+hello from retain-pod
+```
+> 因為 reclaim policy 為 retain，舊的 PVC 即使被刪除，資料還是會繼續留存：
+
+```bash
+ssh node01 -- cat /data/retain/retain.txt
+```
+```text
+hello from retain-pod
+```
+---
+
+OK，測試完 retain，我們來看看 delete。
+
+現在建立一個新的 Pod，掛載 pvc-delete 並寫入資料：
+
+```yaml
+# foo.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo
+  labels:
+    foo: bar
+spec:
+  nodeName: node01
+  containers:
+    - name: busybox
+      image: busybox
+      command: ["/bin/sh", "-c", "echo 'foo data for delete' > /delete-data/delete.txt && echo 'foo data for recycle' > /recycle-data/recycle.txt && sleep 3600"]
+      volumeMounts:
+        - name: delete-vol
+          mountPath: /delete-data
+  volumes:
+    - name: recycle-vol
+      persistentVolumeClaim:
+        claimName: pvc-recycle
+```
+```bash
+kubectl apply -f foo.yaml
+```
+
+查看資料是否成功寫入：
+
+```bash
+ssh node01 -- cat /data/delete/delete.txt 
+```
+```text
+foo data for delete
+```
+
+現在我們刪掉 foo pod、pvc-delete 與 pvc-recycle，並檢查 PV 的狀態：
+
+> 如果不刪掉 foo pod，PVC 一直卡在 Terminating 且刪不掉，因為 foo pod 仍在使用這兩個 pvc，導致觸發 [finalizer](https://kubernetes.io/docs/concepts/overview/working-with-objects/finalizers/) 的機制。
+```bash
+kubectl delete pod foo --grace-period=0 --force
+kubectl delete pvc pvc-delete pvc-recycle
+kubectl get pv pv-delete pv-recycle
+```
+```text
+NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-recycle   500Mi      RWO            Recycle          Available                          <unset>                          6h
+Error from server (NotFound): persistentvolumes "pv-delete" not found
+```
+
+正如上面介紹的那樣，當 reclaim policy 為 Recycle 時，刪除 PVC 之後 PV 會重新變回 Available 狀態，而 policy 為 Delete 時則直接刪除 PV。
 
 ### hostPath 的缺點
 
