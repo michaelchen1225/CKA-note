@@ -23,7 +23,7 @@
 
   * **Inter-pod anti-affinity** : 透過「Pod 的 Label」來篩選出特定的 Pod，然後在指定的 Node topology 中找看看有沒有這些特定的 Pod，如果有，則會將新的 Pod 放到**其他**的 Node topology 中執行。
 
->  什麼是 Node topology？可以參考「[附錄]()」
+>  什麼是 Node topology？可以參考「[附錄](../../附錄/node-topology.md)」
 
 
 而「Label 的篩選條件」則由以下三者組成：
