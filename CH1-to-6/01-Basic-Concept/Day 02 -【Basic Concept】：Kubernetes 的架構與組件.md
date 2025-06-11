@@ -121,15 +121,14 @@ K8s 是一個容器編排平台，而被管理的容器會在 **Pod** 中執行�
 
 3. **Kube-porxy**
 
-   上面已經介紹了兩個組件，分別是 `kubelet` 與 `container runtime`。這兩個組件負責讓 Pod 在 Node 上跑起來，那通訊的部分呢？
+    上面已經介紹了兩個組件，分別是 `kubelet` 與 `container runtime`。這兩個組件負責讓 Pod 在 Node 上跑起來，那通訊的部分呢？
 
-    我們知道 Pod 本質上還是容器，所以生命週期很短，導致用來通訊的 IP 經常會因重啟而改變。
+    我們知道容器的生命週期短，所以 IP 經常會因重啟而改變。為了讓大家能穩定的存取到 Pod，通常會使用 K8s 中的「[Service](https://ithelp.ithome.com.tw/articles/10346530)」提供一個固定 IP 或存取方式：
    
-   為了讓大家能用一個「穩定的 IP」存取到 Pod，我們可以創建一種叫「[Service](./Day%2009%20-【Basic%20Concept】：Service.md)」的資源，由 Service 提供一個穩定的 IP 讓大家存取。
+    ![https://ithelp.ithome.com.tw/upload/images/20250611/20168692ck9dK1gKb0.png](https://ithelp.ithome.com.tw/upload/images/20250611/20168692ck9dK1gKb0.png)
    
-   * 當有流量打到 Service 的 IP 後，該流量會被轉發到對應的 Pod 上，而「流量轉發」的任務，就是由 **kube-proxy** 負責。
-   
-   kube-porxy 會監控 Service 與 Pod 的變化，並將 Service 的流量正確的轉發到 Pod。
+    而 Service 與 Pod 之間的流量轉發，都由 kube-proxy 負責。kube-porxy 會監控 Service 與 Pod 的變化，並將使用者發送到 Service 的流量正確的轉發到 Pod。
+
 
 ---
 
@@ -137,7 +136,7 @@ OK，到這裡我們就介紹完 Node 上的必要組件，簡單複習一下：
 
 > **kubelet** 負責接收指令將 Pod 放到 Node 上執行，**container runtime** 負責將 Pod 中的容器跑起來，**kube-proxy** 負責將流量轉發到 Pod 上。
 
-我們剛剛有說 kubelet 是每艘小船的船長，接收「總指揮」的命令。總指揮的正式名稱為「Master Node」：
+我們剛剛有說 kubelet 是每艘小船的船長，接收「總指揮」的命令。這個總指揮的正式名稱其實是「Master Node」：
 
 **Master Node** 
 
@@ -191,7 +190,7 @@ Master Node 身為整個船隊的**總指揮**，除了擁有上述提到的三�
    
 ## 小結 --- Kubernetes 的架構與組件
 
-以上就是關於 Node 以及其組件的大致介紹。如果還是覺得有些混亂的話，這裡我們再次用船隊的比喻總結一下：
+以上就是關於 Node 以及其組件的大致介紹。如果還是覺得有些混亂的話，這裡再次用船隊的比喻總結一下：
 
 > 如果想像整個 cluster 是一個船隊，那麼 Node 就是船、Pod 就是船上的貨櫃，容器就是貨櫃裡的貨物、貨物由 Container Runtime 產生。
 
