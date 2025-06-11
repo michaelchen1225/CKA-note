@@ -34,9 +34,12 @@
 | 沒有 name key | node05 |
 
 
-我們將這個概念應用在 Pod Affinity/Anti-Affinity 上，就可以比較好理解了，舉例來說：
+我們將這個概念應用在 Inter-pod affinity/anti-affinity 上，就可以比較好理解了，舉例來說：
 
-> 沿用上面例子中的 Node Label，假設今天 Pod Affinity 的設定如下：
+### Inter-pod affinity
+
+
+沿用上面例子中的 Node Label，假設今天 inter-pod affinity 的設定如下：
 
 * 篩選條件：有 `app=web` 的 Pod
 * topologyKey：zone
@@ -45,9 +48,11 @@
 
 那如果只有 node03 上有 `app=web` 的 Pod，則 Pod 會被安排到 `zone=B` 這個 Node Topology 中，也就是 node03 上。
 
-我們來看一個 Pod Anti-Affinity 的例子：
+### Inter-pod anti-affinity
 
-> 假設今天 Pod Anti-Affinity 的設定如下：
+再來看一個 inter-pod anti-affinity 的例子：
+
+> 假設今天 inter-pod anti-Affinity 的設定如下：
 
 * 篩選條件：有 `app=web` 的 Pod
 * topologyKey：name
