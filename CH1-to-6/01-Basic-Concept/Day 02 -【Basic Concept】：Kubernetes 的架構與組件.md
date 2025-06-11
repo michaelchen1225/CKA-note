@@ -46,7 +46,7 @@ K8s 是一個容器編排平台，而被管理的容器會在 **Pod** 中執行�
 
 下圖為 Pod 與 container 的關係：
 
-![https://ithelp.ithome.com.tw/upload/images/20240820/201686927R7EfN2nGm.png](https://ithelp.ithome.com.tw/upload/images/20240820/201686927R7EfN2nGm.png)
+![pod-and-container](../../cka圖庫/pod-container.png)
 
 > 以船隊的比喻來說，Pod 就是船上的貨櫃，而容器就是貨櫃裡面的貨物。
 
@@ -202,9 +202,9 @@ Master Node 身為整個船隊的**總指揮**，除了擁有上述提到的三�
 
 > 船上的通訊系統由 CNI 負責發 IP、kube-proxy 負責轉發流量。
 
-這裡提供一張圖示：
+[官網](https://kubernetes.io/docs/concepts/architecture/)圖示：
 
-![https://ithelp.ithome.com.tw/upload/images/20240820/20168692oKw0I7cTyY.png](https://ithelp.ithome.com.tw/upload/images/20240820/20168692oKw0I7cTyY.png)
+![Kubernetes Architecture](../../cka圖庫/kubernetes-cluster-architecture.png)
 
 
 結合以上介紹，我們來看一下「當使用者告訴 kube-apiserver 要建立一個 Pod 時，會發生了什麼事？」：
