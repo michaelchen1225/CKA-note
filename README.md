@@ -66,7 +66,7 @@ Kubernetes 是目前最流行的 Container Orchestration 系統，不過學習�
 
 以上種種的差異，都很可能發生經典的 "It works on my machine" 問題：
 
-![it-work-on-my-machine](cka圖庫\mine-machine.jpg)
+![it-work-on-my-machine](./cka圖庫/mine-machine.jpg)
 
 因此，你可以用 Docker 把這個 Python 應用包進一個容器中，這裡列舉一些優點：
 
