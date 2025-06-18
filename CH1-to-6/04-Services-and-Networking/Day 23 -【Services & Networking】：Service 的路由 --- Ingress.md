@@ -499,6 +499,7 @@ kubectl apply -f ingress-watch.yaml
 在 rewrite-target 中的 `/$2`，代表將 path 中的第 **2** 個 regex 群組的字元取出來，例如當 user 輸入：
 
 * 造訪首頁：
+
 |原本的 URL | 經 ingress 轉到的 service|
 |-----------|-------------------------|
 |http://${ingressIP}/photo|http://watch-photo-svc:80/|
