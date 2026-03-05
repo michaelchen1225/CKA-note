@@ -164,6 +164,112 @@ kubectl config set-context --current --namespace=<ns-name>
 
 > 這裡的設定意義與 kubeconfig 有關，我們會在「Services & Networking」的章節中再做介紹。
 
+### 補充：刪除 Namespace
+
+若要刪除一個 Namespace ，得先確認是否「該 Namespace 底下的資源已經都沒用、不需要了」，因此建議先將該 Namespace 的資源全部列出來確認：
+
+```bash
+kubectl get all -n <ns-name>
+```
+
+如果確認了 Namespace 底下的資源都不需要了，就可以刪除所有資源：
+
+```bash
+kubectl delete all --all -n <ns-name>
+```
+
+然後再刪除 Namespace：
+
+```bash
+kubectl delete namespace <ns-name> --force --grace-period=0
+```
+
+不過此時你會發現被刪除的 Namespace 卡在 Terminating 的狀態，原因是存在「Finalizer」的機制：
+
+> **Finalizer**：通常存在具有「parent-child」關係的物件上，防止 parent 物件被刪除後留下 orphaned child 的情況。
+
+以 Namespace 為例，Namespace 是 parent 物件，而 Namespace 底下的資源（Pod、Deployment 等等）就是 child 物件。當一個 Namespace 被建立時，就會自動被加上 Finalizer，所以在`kubectl delete namespace` 後，還需要把 Finalizer 移除，才能真正刪除 Namespace：
+
+* Namespace 卡在 Terminating 的狀態：
+
+```bash
+kubectl get ns calico-system 
+```
+```
+NAME            STATUS        AGE
+calico-system   Terminating   386d
+```
+```bash
+kubectl get ns calico-system -o yaml | grep -A 1 -m 1 finalizer
+```
+```
+  finalizers:
+  - kubernetes
+```
+
+* 移除 Finalizer：
+
+```bash
+# 先啟動 kubectl proxy，讓我們可以直接對 API Server 發出請求
+kubectl proxy --port=8080 &
+```
+
+```bash
+cat <<EOF | curl -X PUT \
+  localhost:8080/api/v1/namespaces/calico-system/finalize \
+  -H "Content-Type: application/json" \
+  --data-binary @-
+{
+  "kind": "Namespace",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "calico-system"
+  },
+  "spec": {
+    "finalizers": null
+  }
+}
+EOF
+```
+
+* 確認 Namespace 已經被刪除：
+
+```bash
+kubectl get ns calico-system 
+```
+```
+Error from server (NotFound): namespaces "calico-systme" not found
+```
+
+> 補充一個 shell script 來刪除所有 Terminating 的 Namespace (Ubuntu 環境)：
+
+```bash
+#!/bin/bash
+
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    echo "jq not found. Installing jq..."
+    sudo apt-get update
+    sudo apt-get install -y jq
+else
+    echo "jq is already installed."
+fi
+
+echo "Checking for namespaces stuck in Terminating state..."
+
+for ns in $(kubectl get ns | grep Terminating | awk '{print $1}'); do
+    echo "Force deleting namespace: $ns"
+
+    kubectl get namespace "$ns" -o json \
+        | jq '.spec.finalizers=[]' \
+        | kubectl replace --raw "/api/v1/namespaces/$ns/finalize" -f - > /dev/null
+
+done
+
+echo "Finished cleaning Terminating namespaces."
+```
+
+
 ### 今日小結
 
 其實 Namespace 的操作並不難，所以今天的內容會相對輕鬆些，因為指定 Namespace 就是加上 -n 參數，不然就是在 yaml 中的 metadata.namespace 欄位指定。
