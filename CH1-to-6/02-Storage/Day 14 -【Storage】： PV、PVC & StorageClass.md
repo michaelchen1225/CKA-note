@@ -295,14 +295,15 @@ PVC 被建立後，系統會搜尋可用的 PV 來綁定(binding)，情況可分
 
 ### 實作：hostPath PV & reclaim policy
 
+> 可透過 [killercoda 的 Kubernetes playground](https://killercoda.com/playgrounds/course/kubernetes-playgrounds)進行以下實作。
+
 Reclaim policy 如果沒有實際測試過效果，乍看之下可能會覺得很抽象。以下我們來實際測試看看，並順便了解 hostPath PV 是如何被 Pod 掛載的。
 
 
 首先，在 node01 建立兩個目錄：
 
 ```bash
-ssh node01
-sudo mkdir -p -m 777 /data/retain /data/delete 
+ssh node01 -- sudo mkdir -p -m 777 /data/retain /data/delete /data/recycle
 ```
 
 接著建立三個 PV，分別使用不同的 reclaim policy：
@@ -338,12 +339,27 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   hostPath:
     path: /data/delete
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-recycle
+  labels:
+    foo: bar
+spec:
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  hostPath:
+    path: /data/recycle
 ```
 ```bash
 kubectl apply -f pv.yaml
 ```
 
-接著建立兩個 PVC，分別使用 `volumeName` 來指定 PV，並將 `storageClassName` 設為 null，以免系統中存在 default storage class，導致 PVC 綁訂到 dynamic PV：
+然後建立兩個 PVC，分別使用 `volumeName` 來指定 PV，並將 `storageClassName` 設為 null，以免系統中存在 default storage class，導致 PVC 綁訂到 dynamic PV：
 
 
 ```yaml
@@ -370,8 +386,23 @@ metadata:
   labels:
     foo: bar
 spec:
-  storageClassName: "" 
+  storageClassName: ""
   volumeName: pv-delete
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-recycle
+  labels:
+    foo: bar
+spec:
+  storageClassName: ""
+  volumeName: pv-recycle
   accessModes:
     - ReadWriteOnce
   resources:
@@ -390,8 +421,9 @@ kubectl get pvc -l foo=bar
 ```
 ```text
 NAME          STATUS   VOLUME       CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-pvc-delete    Bound    pv-delete    500Mi      RWO                           <unset>                 52s
-pvc-retain    Bound    pv-retain    500Mi      RWO                           <unset>                 52s
+pvc-delete    Bound    pv-delete    500Mi      RWO                           <unset>                 28s
+pvc-recycle   Bound    pv-recycle   500Mi      RWO                           <unset>                 28s
+pvc-retain    Bound    pv-retain    500Mi      RWO                           <unset>                 28s
 ```
 > 從 STATUS 可以看出三個 PVC 皆成功找到了對應的 PV，因此狀態為 Bound。
 > 從 VOLUME 可以看出三個 PVC 皆成功綁定到我們指定的 PV。
@@ -486,7 +518,7 @@ pv-retain   500Mi      RWO            Retain           Available                
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: new-pvc
+  name: new-pvc-retain
   labels:
     foo: bar
 spec:
@@ -540,9 +572,9 @@ hello from retain-pod
 ```
 ---
 
-OK，測試完 retain，我們來看看 delete。
+OK，測試完 retain，我們來看看 delete & recycle。
 
-現在建立一個新的 Pod，掛載 pvc-delete 並寫入資料：
+現在建立一個新的 Pod，同時掛載 pvc-delete & pvc-recycle 並寫入資料：
 
 ```yaml
 # foo.yaml
@@ -561,7 +593,12 @@ spec:
       volumeMounts:
         - name: delete-vol
           mountPath: /delete-data
+        - name: recycle-vol
+          mountPath: /recycle-data
   volumes:
+    - name: delete-vol
+      persistentVolumeClaim:
+        claimName: pvc-delete
     - name: recycle-vol
       persistentVolumeClaim:
         claimName: pvc-recycle
@@ -573,10 +610,11 @@ kubectl apply -f foo.yaml
 查看資料是否成功寫入：
 
 ```bash
-ssh node01 -- cat /data/delete/delete.txt 
+ssh node01 -- "cat /data/delete/delete.txt && cat /data/recycle/recycle.txt"
 ```
 ```text
 foo data for delete
+foo data for recycle
 ```
 
 現在我們刪掉 foo pod、pvc-delete 與 pvc-recycle，並檢查 PV 的狀態：
@@ -588,12 +626,25 @@ kubectl delete pvc pvc-delete pvc-recycle
 kubectl get pv pv-delete pv-recycle
 ```
 ```text
-NAME         CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
-pv-recycle   500Mi      RWO            Recycle          Available                          <unset>                          6h
-Error from server (NotFound): persistentvolumes "pv-delete" not found
+CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+pv-delete    500Mi      RWO            Delete           Failed      default/pvc-delete                  <unset>                          10m
+pv-recycle   500Mi      RWO            Recycle          Available
 ```
 
-正如上面介紹的那樣，當 reclaim policy 為 Recycle 時，刪除 PVC 之後 PV 會重新變回 Available 狀態，而 policy 為 Delete 時則直接刪除 PV。
+正如上面介紹的那樣，當 reclaim policy 為 Recycle 時，刪除 PVC 之後 PV 會重新變回 Available。
+
+至於 pv-delete 的 Failed 狀態，是因為 Delete 這個 policy 的設計是讓 Kubernetes 去呼叫後端 storage provisioner（例如 AWS EBS、GCE PD）的 API 來刪除實際的 storage 資源。但 hostPath 只是 node 上的一個目錄，根本沒有對應的 provisioner，所以 Kubernetes 不知道要怎麼刪，就會卡在 Failed。
+
+實際環境中 Delete policy 會搭配 dynamic provisioning 使用（StorageClass + provisioner），手動建立的 hostPath PV 拿來測試 Delete 效果會有這個限制。
+
+回過頭來看 recycle，正如上文所述，雖然 PV 可再次被使用，但之前的資料已被刪除了：
+
+```bash
+ssh node01 -- "ls /data/recycle && cat /data/recycle/recycle.txt"
+```
+```text
+cat: /data/recycle/recycle.txt: No such file or directory
+```
 
 ### hostPath 的缺點
 
@@ -604,6 +655,15 @@ Error from server (NotFound): persistentvolumes "pv-delete" not found
 2. 如果 Pod 在工作時對 hostPath 寫入了一些資料，但 Pod 有可能因為某些原因而重新啟動，重啟時被調度到其他 node 上，那之前寫入的舊資料就讀不到了。
 
 當然，我們可以使用 nodeName 或 nodeSelector 來指定 Pod 要跑在哪個 Node 上，但這也無法避免上述提到的第二個問題，且當面對一個複雜的 cluster、有一堆 Pod、一堆 hostPath 時，逐一在每個 Pod 撰寫 scheduling 的相關配置相當麻煩，也降低了調度上的靈活度。(註：有關 nodeName、nodeSelector 的使用方式會在後續 scheduling 的章節介紹)
+
+除了上述的問題，hostPath 還有以下幾個問題：
+
+**安全性問題**
+
+掛載 hostPath 的 Pod 可以直接存取 node 上的檔案系統，如果路徑設定不當（例如掛到 / 或 /etc），容器內的程式就能讀寫 node 的系統檔案，是很大的安全風險。因此很多公司的 policy 或 admission controller 會直接禁用 hostPath。
+
+**沒有容量管理**
+Kubernetes 不會真的限制 hostPath 的使用量，即使 PV 定義了 500Mi，實際上 Pod 可以把 node 的磁碟寫滿，capacity 只是一個標示而已。
 
 因此，hostPath 常見的使用環境為「single-node cluster」，這在[官網](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes)上也有明確的說明：
 
